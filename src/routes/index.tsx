@@ -348,6 +348,6 @@ function Dashboard() {
           EduCard Pro · Prototype with mock data
         </footer>
       </main>
-    </div>
+    </>
   );
 }
