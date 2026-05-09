@@ -96,39 +96,51 @@ function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <GraduationCap className="h-5 w-5" />
-            </div>
+    <>
+      <PageHeader title="Dashboard" subtitle="Admin overview · St. Mary's Academy" />
+      <main className="space-y-6 p-4 sm:p-6">
+        {/* Hero banner */}
+        <section
+          className="relative overflow-hidden rounded-2xl p-6 text-primary-foreground shadow-[var(--shadow-elegant)]"
+          style={{ background: "var(--gradient-primary)" }}
+        >
+          <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute -bottom-16 right-24 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-lg font-semibold leading-tight">EduCard Pro</h1>
-              <p className="text-xs text-muted-foreground">
-                St. Mary's Academy · Admin Dashboard
+              <p className="text-xs font-medium uppercase tracking-widest opacity-80">
+                Good morning, Principal
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold sm:text-3xl">
+                487 students · 92.7% present today
+              </h2>
+              <p className="mt-2 max-w-lg text-sm opacity-90">
+                A calm morning across campus. 12 students need follow-up and 3 report cards are queued for printing.
               </p>
             </div>
+            <div className="flex gap-2">
+              <div className="rounded-lg bg-white/15 px-3 py-2 text-center backdrop-blur">
+                <p className="text-[10px] uppercase opacity-80">Term</p>
+                <p className="text-sm font-semibold">3rd Quarter</p>
+              </div>
+              <div className="rounded-lg bg-white/15 px-3 py-2 text-center backdrop-blur">
+                <p className="text-[10px] uppercase opacity-80">Week</p>
+                <p className="text-sm font-semibold">Week 6</p>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span>May 9, 2026</span>
-          </div>
-        </div>
-      </header>
+        </section>
 
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
         {/* Metrics */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {metrics.map((m) => (
-            <Card key={m.label}>
+            <Card key={m.label} className="overflow-hidden border-border/60">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <p className="text-sm text-muted-foreground">{m.label}</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{m.label}</p>
                   <p className="mt-1 text-2xl font-semibold">{m.value}</p>
                 </div>
-                <div className={`rounded-lg bg-muted p-3 ${m.accent}`}>
+                <div className={`rounded-xl bg-muted p-3 ${m.accent}`}>
                   <m.icon className="h-5 w-5" />
                 </div>
               </CardContent>
