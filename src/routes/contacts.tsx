@@ -14,7 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
-import { SCHOOL_NAME, SCHOOL_YEAR, fullName, allLearners } from "@/lib/school-data";
+import { 
+  SCHOOL_NAME, 
+  SCHOOL_YEAR, 
+  teacherContacts, 
+  parentContacts 
+} from "@/lib/school-data";
 
 export const Route = createFileRoute("/contacts")({
   component: ContactsPage,
@@ -25,76 +30,6 @@ export const Route = createFileRoute("/contacts")({
     ],
   }),
 });
-
-// Mock data for parent's children
-const myChildren = [
-  allLearners.find((l) => l.learner.lrn === "136728140987")!, // Juan
-  allLearners.find((l) => l.learner.lrn === "136728140989")!, // Bea
-];
-
-const teacherContacts = [
-  {
-    teacher: "Ms. Aurora Aquino",
-    subject: "Grade 7 - Sampaguita",
-    role: "Adviser & Math Teacher",
-    phone: "+63 917 123 4567",
-    messenger: "aurora.aquino",
-    facebook: "aurora.aquino.teacher",
-    email: "a.aquino@stmarys.edu.ph",
-    children: ["Juan", "Bea"],
-  },
-  {
-    teacher: "Mr. Roberto Santos",
-    subject: "Grade 7 - Science",
-    role: "Science Teacher",
-    phone: "+63 918 234 5678",
-    messenger: "roberto.santos",
-    facebook: "roberto.santos.teacher",
-    email: "r.santos@stmarys.edu.ph",
-    children: ["Juan", "Bea"],
-  },
-  {
-    teacher: "Ms. Elena Reyes",
-    subject: "Grade 7 - English",
-    role: "English Teacher",
-    phone: "+63 919 345 6789",
-    messenger: "elena.reyes",
-    facebook: "elena.reyes.teacher",
-    email: "e.reyes@stmarys.edu.ph",
-    children: ["Juan", "Bea"],
-  },
-];
-
-// Mock parent contacts for teachers to view
-const parentContacts = [
-  {
-    parent: "Maria Dela Cruz",
-    children: ["Juan M. Dela Cruz", "Bea M. Dela Cruz"],
-    section: "Grade 7 - Sampaguita",
-    phone: "+63 920 456 7890",
-    messenger: "maria.delacruz",
-    facebook: "maria.delacruz.parent",
-    email: "maria.delacruz@gmail.com",
-  },
-  {
-    parent: "Jose Reyes",
-    children: ["Sofia Reyes"],
-    section: "Grade 7 - Sampaguita",
-    phone: "+63 921 567 8901",
-    messenger: "jose.reyes",
-    facebook: "jose.reyes.parent",
-    email: "jose.reyes@gmail.com",
-  },
-  {
-    parent: "Ana Santos",
-    children: ["Miguel Santos"],
-    section: "Grade 7 - Sampaguita",
-    phone: "+63 922 678 9012",
-    messenger: "ana.santos",
-    facebook: "ana.santos.parent",
-    email: "ana.santos@gmail.com",
-  },
-];
 
 function ContactsPage() {
   const { role } = useRole();

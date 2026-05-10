@@ -10,6 +10,7 @@ import {
   Upload,
   Save,
   GraduationCap,
+  FileUp,
 } from "lucide-react";
 import {
   BarChart,
@@ -24,6 +25,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -81,6 +90,8 @@ const recentActivity = [
 export function TeacherView() {
   const [editMode, setEditMode] = useState(false);
   const [grades, setGrades] = useState(initialGrades);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [csvStep, setCsvStep] = useState<"idle" | "preview">("idle");
 
   const atRisk = mySectionLearners.filter(
     (l) => l.attendanceRate < SF2_TARGET || (grades[l.lrn] && Object.values(grades[l.lrn]).some((g) => g < 75)),
@@ -90,6 +101,21 @@ export function TeacherView() {
     mySectionLearners.reduce((a, l) => a + l.gpa, 0) / mySectionLearners.length;
   const classAttendance =
     mySectionLearners.reduce((a, l) => a + l.attendanceRate, 0) / mySectionLearners.length;
+
+  const handleLoadSampleCsv = () => {
+    setCsvStep("preview");
+  };
+
+  const handleImportGrades = () => {
+    toast.success("Grades imported successfully");
+    setCsvImportOpen(false);
+    setCsvStep("idle");
+  };
+
+  const handleCloseCsvDialog = () => {
+    setCsvImportOpen(false);
+    setCsvStep("idle");
+  };
 
   return (
     <>
@@ -162,7 +188,11 @@ export function TeacherView() {
               <p className="mt-0.5 text-xs text-muted-foreground">3rd Quarter · {SCHOOL_NAME}</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCsvImportOpen(true)}
+              >
                 <Upload className="h-4 w-4" /> Import CSV
               </Button>
               {editMode ? (
@@ -355,6 +385,126 @@ export function TeacherView() {
           <GraduationCap className="h-3.5 w-3.5" />
           EduCard Pro · Teacher Portal · {SCHOOL_NAME} · SY {SCHOOL_YEAR}
         </footer>
+
+        {/* CSV Import Dialog */}
+        <Dialog open={csvImportOpen} onOpenChange={handleCloseCsvDialog}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Import Grades from CSV</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              {csvStep === "idle" ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-12 transition-colors hover:border-muted-foreground/50">
+                    <div className="text-center">
+                      <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <p className="mt-3 text-sm font-medium text-muted-foreground">
+                        Drag CSV here or click to browse
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Expected columns: LRN, Math, Science, English, Filipino, AP, MAPEH
+                      </p>
+                      <input
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                        id="csvUpload"
+                      />
+                      <label
+                        htmlFor="csvUpload"
+                        className="mt-4 inline-block cursor-pointer rounded-md bg-muted px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/80"
+                      >
+                        Choose File
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLoadSampleCsv}
+                    >
+                      Load Sample CSV (Demo)
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="rounded-lg bg-chart-2/10 p-3 text-sm text-chart-2">
+                    <CheckCircle2 className="mr-2 inline h-4 w-4" />
+                    <strong>3 records ready to import</strong>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>LRN</TableHead>
+                          <TableHead>Learner</TableHead>
+                          <TableHead className="text-center">Math</TableHead>
+                          <TableHead className="text-center">Science</TableHead>
+                          <TableHead className="text-center">English</TableHead>
+                          <TableHead className="text-center">Filipino</TableHead>
+                          <TableHead className="text-center">AP</TableHead>
+                          <TableHead className="text-center">MAPEH</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {mySectionLearners.slice(0, 3).map((l) => {
+                          const lg = initialGrades[l.lrn] ?? {};
+                          return (
+                            <TableRow key={l.lrn}>
+                              <TableCell className="font-mono text-xs">
+                                {l.lrn}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {fullName(l)}
+                              </TableCell>
+                              <TableCell className="text-center font-semibold">
+                                {lg.Math ?? 85}
+                              </TableCell>
+                              <TableCell className="text-center font-semibold">
+                                {lg.Science ?? 85}
+                              </TableCell>
+                              <TableCell className="text-center font-semibold">
+                                {lg.English ?? 85}
+                              </TableCell>
+                              <TableCell className="text-center font-semibold">
+                                {lg.Filipino ?? 85}
+                              </TableCell>
+                              <TableCell className="text-center font-semibold">
+                                {lg.AP ?? 85}
+                              </TableCell>
+                              <TableCell className="text-center font-semibold">
+                                {lg.MAPEH ?? 85}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              {csvStep === "idle" ? (
+                <Button variant="outline" onClick={handleCloseCsvDialog}>
+                  Cancel
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={handleCloseCsvDialog}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleImportGrades}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import Grades
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </>
   );

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Users,
   UserCheck,
@@ -17,6 +18,7 @@ import {
   Upload,
   Download,
   CalendarCheck,
+  Camera,
 } from "lucide-react";
 import {
   LineChart,
@@ -33,6 +35,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import {
   Table,
   TableBody,
   TableCell,
@@ -48,6 +67,7 @@ import {
   departments,
   departmentStats,
   allLearners,
+  allSections,
   totals,
   fullName,
   type Section as SectionT,
@@ -158,10 +178,60 @@ function SectionCard({ section, adviser }: { section: SectionT; adviser: string 
 }
 
 export function AdminView() {
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [sf1ExportOpen, setSf1ExportOpen] = useState(false);
+  
+  // Enroll form state
+  const [lrn, setLrn] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleInitial, setMiddleInitial] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
+  const [sectionId, setSectionId] = useState("");
+  const [lrnError, setLrnError] = useState("");
+
   const overallRate = totals.campusAttendance.toFixed(1);
   const compliancePct = Math.round(
     ((totals.sections - totals.below) / totals.sections) * 100,
   );
+
+  const handleEnrollSubmit = () => {
+    if (!lrn.trim()) {
+      setLrnError("LRN is required");
+      return;
+    }
+    setLrnError("");
+    toast.success("Student enrolled successfully — ID card queued for printing");
+    setEnrollOpen(false);
+    // Reset form
+    setLrn("");
+    setFirstName("");
+    setMiddleInitial("");
+    setLastName("");
+    setGradeLevel("");
+    setSectionId("");
+  };
+
+  const handleSf1Export = () => {
+    toast.success("SF1 report generated — downloading…");
+    setSf1ExportOpen(false);
+  };
+
+  // Group sections by grade level for SF1 export
+  const sf1Data = Array.from({ length: 6 }, (_, i) => {
+    const level = i + 7; // Grade 7-12
+    const sections = allSections.filter((s) => s.grade.level === level);
+    return {
+      gradeLevel: `Grade ${level}`,
+      sections: sections.length,
+      totalEnrolled: sections.reduce((sum, s) => sum + s.enrolled, 0),
+    };
+  });
+
+  // Filter sections by selected grade level
+  const filteredSections = gradeLevel
+    ? allSections.filter((s) => s.grade.level === parseInt(gradeLevel))
+    : [];
 
   const metrics = [
     {
@@ -506,13 +576,23 @@ export function AdminView() {
             <CardTitle className="text-base">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Button variant="outline" className="justify-start" size="lg">
+            <Button
+              variant="outline"
+              className="justify-start"
+              size="lg"
+              onClick={() => setEnrollOpen(true)}
+            >
               <Users className="mr-2 h-4 w-4" /> Register New Student
             </Button>
             <Button variant="outline" className="justify-start" size="lg">
               <FileEdit className="mr-2 h-4 w-4" /> Update LRN Records
             </Button>
-            <Button variant="outline" className="justify-start" size="lg">
+            <Button
+              variant="outline"
+              className="justify-start"
+              size="lg"
+              onClick={() => setSf1ExportOpen(true)}
+            >
               <Download className="mr-2 h-4 w-4" /> Export SF1 Report
             </Button>
             <Button variant="outline" className="justify-start" size="lg">
@@ -520,6 +600,176 @@ export function AdminView() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Enroll Student Dialog */}
+        <Dialog open={enrollOpen} onOpenChange={setEnrollOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Enroll New Student</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="lrn">Learner Reference Number (LRN)</Label>
+                <Input
+                  id="lrn"
+                  placeholder="e.g. 136728140999"
+                  value={lrn}
+                  onChange={(e) => {
+                    setLrn(e.target.value);
+                    setLrnError("");
+                  }}
+                  maxLength={12}
+                />
+                {lrnError && <p className="text-sm text-destructive">{lrnError}</p>}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="middleInitial">Middle Initial</Label>
+                  <Input
+                    id="middleInitial"
+                    value={middleInitial}
+                    onChange={(e) => setMiddleInitial(e.target.value)}
+                    maxLength={1}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="gradeLevel">Grade Level</Label>
+                  <Select value={gradeLevel} onValueChange={setGradeLevel}>
+                    <SelectTrigger id="gradeLevel">
+                      <SelectValue placeholder="Select grade level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">Grade 7</SelectItem>
+                      <SelectItem value="8">Grade 8</SelectItem>
+                      <SelectItem value="9">Grade 9</SelectItem>
+                      <SelectItem value="10">Grade 10</SelectItem>
+                      <SelectItem value="11">Grade 11</SelectItem>
+                      <SelectItem value="12">Grade 12</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="section">Section</Label>
+                  <Select
+                    value={sectionId}
+                    onValueChange={setSectionId}
+                    disabled={!gradeLevel}
+                  >
+                    <SelectTrigger id="section">
+                      <SelectValue placeholder="Select section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredSections.map((s) => (
+                        <SelectItem key={s.section.id} value={s.section.id}>
+                          {s.section.name}
+                          {s.section.strand && ` (${s.section.strand})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Student Photo</Label>
+                <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-8 transition-colors hover:border-muted-foreground/50">
+                  <div className="text-center">
+                    <Camera className="mx-auto h-8 w-8 text-muted-foreground" />
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      PNG, JPG up to 2MB
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id="photoUpload"
+                    />
+                    <label
+                      htmlFor="photoUpload"
+                      className="mt-3 inline-block cursor-pointer rounded-md bg-muted px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted/80"
+                    >
+                      Choose File
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEnrollOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEnrollSubmit}>Enroll Student</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Export SF1 Dialog */}
+        <Dialog open={sf1ExportOpen} onOpenChange={setSf1ExportOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Export SF1 Report</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Grade Level</TableHead>
+                    <TableHead className="text-center">Sections</TableHead>
+                    <TableHead className="text-right">Total Enrolled</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sf1Data.map((row) => (
+                    <TableRow key={row.gradeLevel}>
+                      <TableCell className="font-medium">{row.gradeLevel}</TableCell>
+                      <TableCell className="text-center">{row.sections}</TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {row.totalEnrolled}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="bg-muted/50 font-semibold">
+                    <TableCell>Total</TableCell>
+                    <TableCell className="text-center">{totals.sections}</TableCell>
+                    <TableCell className="text-right">{totals.enrolled}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSf1ExportOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSf1Export}>
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <footer className="flex items-center justify-center gap-2 pt-4 pb-2 text-center font-ui text-xs uppercase tracking-wider text-muted-foreground">
           <GraduationCap className="h-3.5 w-3.5" />

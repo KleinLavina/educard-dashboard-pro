@@ -98,7 +98,7 @@ const navConfig: Record<
     icon: Users,
     main: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "My Children", url: "/students", icon: Users },
+      { title: "My Children", url: "/my-children", icon: Users },
       { title: "Attendance", url: "/attendance", icon: CalendarCheck },
       { title: "Grades", url: "/grades", icon: GraduationCap },
     ],
@@ -121,7 +121,8 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { role } = useRole();
-  const currentPath = useRouterState({ select: (r) => r.location.pathname });
+  const routerState = useRouterState();
+  const currentPath = routerState.location.pathname;
   const nav = navConfig[role];
 
   // State for collapsible sections (Admin only)

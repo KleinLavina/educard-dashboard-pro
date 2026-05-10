@@ -321,3 +321,322 @@ export const totals = {
     allLearners.reduce((a, l) => a + l.learner.attendanceRate, 0) /
     Math.max(allLearners.length, 1),
 };
+
+
+// ============================================================================
+// Phase 0 — Extended Mock Data
+// ============================================================================
+
+// 0-A: Subject lists --------------------------------------------------------
+
+export const SUBJECTS_JHS = ["Math", "Science", "English", "Filipino", "AP", "MAPEH", "Values Ed", "TLE"];
+
+export const SUBJECTS_SHS_CORE = ["Oral Communication", "Reading & Writing", "21st Century Lit", "General Math", "Earth Science", "Personal Development", "PE & Health"];
+
+export const SUBJECTS_SHS_STRAND: Record<Strand, string[]> = {
+  "STEM":    ["Pre-Calculus", "General Physics I", "General Chemistry I"],
+  "ABM":     ["Business Math", "Fundamentals of ABM", "Business Ethics"],
+  "HUMSS":   ["Creative Writing", "Philippine Politics", "Community Engagement"],
+  "GAS":     ["Research in Daily Life", "Applied Economics"],
+  "TVL-ICT": ["Computer Systems Servicing", "Web Development", "Programming"],
+  "TVL-HE":  ["Food & Beverage Services", "Bread & Pastry Production"],
+};
+
+// 0-B: Grade records --------------------------------------------------------
+
+export type QuarterGrade = { q1: number; q2: number; q3: number; q4: number | null };
+export type GradeRecord = { lrn: string; subject: string; grades: QuarterGrade };
+
+export const gradeRecords: GradeRecord[] = [
+  // Juan Dela Cruz (136728140987)
+  { lrn: "136728140987", subject: "Math",      grades: { q1: 89, q2: 91, q3: 92, q4: null } },
+  { lrn: "136728140987", subject: "Science",   grades: { q1: 87, q2: 88, q3: 90, q4: null } },
+  { lrn: "136728140987", subject: "English",   grades: { q1: 85, q2: 87, q3: 88, q4: null } },
+  { lrn: "136728140987", subject: "Filipino",  grades: { q1: 91, q2: 93, q3: 94, q4: null } },
+  { lrn: "136728140987", subject: "AP",        grades: { q1: 88, q2: 90, q3: 91, q4: null } },
+  { lrn: "136728140987", subject: "MAPEH",     grades: { q1: 93, q2: 94, q3: 95, q4: null } },
+  { lrn: "136728140987", subject: "Values Ed", grades: { q1: 92, q2: 93, q3: 94, q4: null } },
+  { lrn: "136728140987", subject: "TLE",       grades: { q1: 88, q2: 89, q3: 90, q4: null } },
+
+  // Carlo Villanueva (136728140988)
+  { lrn: "136728140988", subject: "Math",      grades: { q1: 82, q2: 84, q3: 85, q4: null } },
+  { lrn: "136728140988", subject: "Science",   grades: { q1: 80, q2: 82, q3: 83, q4: null } },
+  { lrn: "136728140988", subject: "English",   grades: { q1: 84, q2: 86, q3: 87, q4: null } },
+  { lrn: "136728140988", subject: "Filipino",  grades: { q1: 86, q2: 88, q3: 89, q4: null } },
+  { lrn: "136728140988", subject: "AP",        grades: { q1: 81, q2: 83, q3: 84, q4: null } },
+  { lrn: "136728140988", subject: "MAPEH",     grades: { q1: 88, q2: 89, q3: 90, q4: null } },
+  { lrn: "136728140988", subject: "Values Ed", grades: { q1: 85, q2: 86, q3: 87, q4: null } },
+  { lrn: "136728140988", subject: "TLE",       grades: { q1: 72, q2: 74, q3: 74, q4: null } }, // at-risk
+
+  // Bea Soriano (136728140989)
+  { lrn: "136728140989", subject: "Math",      grades: { q1: 88, q2: 89, q3: 90, q4: null } },
+  { lrn: "136728140989", subject: "Science",   grades: { q1: 90, q2: 91, q3: 92, q4: null } },
+  { lrn: "136728140989", subject: "English",   grades: { q1: 86, q2: 87, q3: 88, q4: null } },
+  { lrn: "136728140989", subject: "Filipino",  grades: { q1: 89, q2: 90, q3: 91, q4: null } },
+  { lrn: "136728140989", subject: "AP",        grades: { q1: 87, q2: 88, q3: 89, q4: null } },
+  { lrn: "136728140989", subject: "MAPEH",     grades: { q1: 92, q2: 93, q3: 94, q4: null } },
+  { lrn: "136728140989", subject: "Values Ed", grades: { q1: 91, q2: 92, q3: 93, q4: null } },
+  { lrn: "136728140989", subject: "TLE",       grades: { q1: 87, q2: 88, q3: 89, q4: null } },
+
+  // Marco Reyes (136728140098) — at-risk student
+  { lrn: "136728140098", subject: "Math",      grades: { q1: 65, q2: 67, q3: 68, q4: null } },
+  { lrn: "136728140098", subject: "Science",   grades: { q1: 63, q2: 65, q3: 67, q4: null } },
+  { lrn: "136728140098", subject: "English",   grades: { q1: 70, q2: 71, q3: 72, q4: null } },
+  { lrn: "136728140098", subject: "Filipino",  grades: { q1: 71, q2: 72, q3: 73, q4: null } },
+  { lrn: "136728140098", subject: "AP",        grades: { q1: 68, q2: 69, q3: 68, q4: null } },
+  { lrn: "136728140098", subject: "MAPEH",     grades: { q1: 75, q2: 76, q3: 76, q4: null } },
+  { lrn: "136728140098", subject: "Values Ed", grades: { q1: 74, q2: 75, q3: 75, q4: null } },
+  { lrn: "136728140098", subject: "TLE",       grades: { q1: 70, q2: 71, q3: 72, q4: null } },
+];
+
+// 0-C: Daily attendance logs ------------------------------------------------
+
+export type AttendanceStatus = "present" | "absent" | "late" | "excused";
+export type AttendanceLog = {
+  lrn: string;
+  date: string;       // "2026-05-05"
+  timeIn: string;     // "07:38"
+  timeOut: string;    // "16:10"
+  status: AttendanceStatus;
+};
+
+// 10 school days for the 3 main G7-Sampaguita learners
+export const attendanceLogs: AttendanceLog[] = [
+  { lrn:"136728140987", date:"2026-04-28", timeIn:"07:38", timeOut:"16:05", status:"present" },
+  { lrn:"136728140987", date:"2026-04-29", timeIn:"07:41", timeOut:"16:10", status:"present" },
+  { lrn:"136728140987", date:"2026-04-30", timeIn:"08:15", timeOut:"16:00", status:"late" },
+  { lrn:"136728140987", date:"2026-05-05", timeIn:"07:35", timeOut:"16:08", status:"present" },
+  { lrn:"136728140987", date:"2026-05-06", timeIn:"07:42", timeOut:"16:05", status:"present" },
+  { lrn:"136728140987", date:"2026-05-07", timeIn:"07:39", timeOut:"16:10", status:"present" },
+  { lrn:"136728140987", date:"2026-05-08", timeIn:"07:40", timeOut:"16:05", status:"present" },
+  { lrn:"136728140987", date:"2026-05-09", timeIn:"",      timeOut:"",      status:"absent" },
+  { lrn:"136728140987", date:"2026-05-10", timeIn:"07:38", timeOut:"16:10", status:"present" },
+
+  { lrn:"136728140988", date:"2026-05-09", timeIn:"",      timeOut:"",      status:"absent" },
+  { lrn:"136728140988", date:"2026-05-10", timeIn:"",      timeOut:"",      status:"absent" }, // 2 consecutive — triggers warning
+
+  { lrn:"136728140989", date:"2026-05-09", timeIn:"07:42", timeOut:"16:05", status:"present" },
+  { lrn:"136728140989", date:"2026-05-10", timeIn:"07:42", timeOut:"16:08", status:"present" },
+
+  { lrn:"136728140098", date:"2026-05-06", timeIn:"",      timeOut:"",      status:"absent" },
+  { lrn:"136728140098", date:"2026-05-07", timeIn:"",      timeOut:"",      status:"absent" },
+  { lrn:"136728140098", date:"2026-05-08", timeIn:"",      timeOut:"",      status:"absent" },
+  { lrn:"136728140098", date:"2026-05-09", timeIn:"",      timeOut:"",      status:"absent" },
+  { lrn:"136728140098", date:"2026-05-10", timeIn:"",      timeOut:"",      status:"absent" }, // 5 consecutive — triggers severe warning
+];
+
+// 0-D: Parent profiles ------------------------------------------------------
+
+export type ParentProfile = {
+  id: string;
+  name: string;
+  relationship: "Mother" | "Father" | "Guardian";
+  phone: string;
+  messengerLinked: boolean;
+  smsEnabled: boolean;
+  linkedLrns: string[];
+};
+
+export const parentProfiles: ParentProfile[] = [
+  {
+    id: "p001",
+    name: "Maria Dela Cruz",
+    relationship: "Mother",
+    phone: "+63 917 123 4567",
+    messengerLinked: true,
+    smsEnabled: false,
+    linkedLrns: ["136728140987", "136728140989"], // Juan + Bea (siblings for demo)
+  },
+  {
+    id: "p002",
+    name: "Rodrigo Villanueva",
+    relationship: "Father",
+    phone: "+63 918 234 5678",
+    messengerLinked: false,
+    smsEnabled: true,
+    linkedLrns: ["136728140988"],
+  },
+  {
+    id: "p003",
+    name: "Lourdes Reyes",
+    relationship: "Mother",
+    phone: "+63 919 345 6789",
+    messengerLinked: true,
+    smsEnabled: true,
+    linkedLrns: ["136728140098"],
+  },
+];
+
+// 0-E: Notification history -------------------------------------------------
+
+export type NotifChannel = "messenger" | "sms" | "system";
+export type NotifStatus = "sent" | "failed" | "pending";
+export type NotificationRecord = {
+  id: string;
+  parentId: string;
+  channel: NotifChannel;
+  status: NotifStatus;
+  message: string;
+  triggeredBy: "attendance_scan" | "grade_posted" | "absence_warning" | "system";
+  sentAt: string;
+};
+
+export const notificationHistory: NotificationRecord[] = [
+  { id:"n001", parentId:"p001", channel:"messenger", status:"sent",    message:"Juan pumasok sa paaralan ngayong 7:38 AM — May 10", triggeredBy:"attendance_scan",  sentAt:"2026-05-10 07:38" },
+  { id:"n002", parentId:"p001", channel:"messenger", status:"sent",    message:"Bagong marka para kay Juan: Math Q3 = 92",          triggeredBy:"grade_posted",      sentAt:"2026-05-09 14:00" },
+  { id:"n003", parentId:"p002", channel:"sms",       status:"failed",  message:"Carlo ay hindi pumasok ngayon — May 10",            triggeredBy:"absence_warning",   sentAt:"2026-05-10 08:00" },
+  { id:"n004", parentId:"p002", channel:"sms",       status:"sent",    message:"Carlo ay hindi pumasok ngayon — May 9",             triggeredBy:"absence_warning",   sentAt:"2026-05-09 08:00" },
+  { id:"n005", parentId:"p003", channel:"messenger", status:"pending", message:"Marco ay hindi pumasok ng 5 araw. Mangyaring makipag-ugnayan sa paaralan.", triggeredBy:"absence_warning", sentAt:"2026-05-10 08:00" },
+  { id:"n006", parentId:"p001", channel:"messenger", status:"sent",    message:"Bea pumasok sa paaralan ngayong 7:42 AM — May 10",  triggeredBy:"attendance_scan",  sentAt:"2026-05-10 07:42" },
+];
+
+// 0-F: Conduct logs ---------------------------------------------------------
+
+export type ConductType = "Positive" | "Note" | "Warning";
+export type ConductLog = {
+  lrn: string;
+  date: string;
+  item: string;
+  type: ConductType;
+  recordedBy: string;
+};
+
+export const conductLogs: ConductLog[] = [
+  { lrn:"136728140987", date:"May 5",  item:"Participated actively in Science Lab", type:"Positive", recordedBy:"Ms. Aurora Aquino" },
+  { lrn:"136728140987", date:"Apr 28", item:"Submitted group project on time",       type:"Positive", recordedBy:"Ms. Aurora Aquino" },
+  { lrn:"136728140987", date:"Apr 12", item:"Late arrival — 8:15 AM",                type:"Note",     recordedBy:"Ms. Aurora Aquino" },
+  { lrn:"136728140988", date:"May 7",  item:"2nd consecutive absence — parents notified", type:"Warning", recordedBy:"Ms. Aurora Aquino" },
+  { lrn:"136728140988", date:"Apr 20", item:"Incomplete homework submission",        type:"Note",     recordedBy:"Ms. Aurora Aquino" },
+  { lrn:"136728140989", date:"May 5",  item:"Excellent class participation — Filipino", type:"Positive", recordedBy:"Ms. Aurora Aquino" },
+  { lrn:"136728140989", date:"Apr 30", item:"Ranked 1st in Math Quiz",               type:"Positive", recordedBy:"Ms. Aurora Aquino" },
+  { lrn:"136728140098", date:"May 8",  item:"4th consecutive absence — referral to guidance", type:"Warning", recordedBy:"Mr. Benjie Lopez" },
+  { lrn:"136728140098", date:"Apr 15", item:"Struggling with written exams — extra support assigned", type:"Note", recordedBy:"Mr. Benjie Lopez" },
+];
+
+// 0-G: School calendar ------------------------------------------------------
+
+export const schoolCalendar = {
+  schoolYear: SCHOOL_YEAR,
+  currentQuarter: 3,
+  currentWeek: 6,
+  quarters: [
+    { label: "Q1", start: "2025-08-26", end: "2025-10-17" },
+    { label: "Q2", start: "2025-10-21", end: "2025-12-19" },
+    { label: "Q3", start: "2026-01-12", end: "2026-03-27" },
+    { label: "Q4", start: "2026-04-07", end: "2026-05-30" },
+  ],
+  holidays: ["2026-04-09", "2026-04-10", "2026-05-01"],
+  schoolDaysThisQuarter: 54,
+  schoolDaysCompleted: 52,
+};
+
+// 0-H: ID card print history ------------------------------------------------
+
+export type IDPrintRecord = {
+  lrn: string;
+  printedAt: string;
+  printedBy: string;
+  type: "original" | "reprint";
+  reprintReason?: string;
+};
+
+export const idPrintHistory: IDPrintRecord[] = [
+  { lrn:"136728140987", printedAt:"2025-08-26 09:00", printedBy:"Ms. Registrar Cruz", type:"original" },
+  { lrn:"136728140988", printedAt:"2025-08-26 09:05", printedBy:"Ms. Registrar Cruz", type:"original" },
+  { lrn:"136728140989", printedAt:"2025-08-26 09:10", printedBy:"Ms. Registrar Cruz", type:"original" },
+  { lrn:"136728140987", printedAt:"2026-03-15 10:00", printedBy:"Ms. Registrar Cruz", type:"reprint",  reprintReason:"Lost" },
+  { lrn:"136728140456", printedAt:"2025-08-27 09:00", printedBy:"Ms. Registrar Cruz", type:"original" },
+];
+
+export const idReprintRequests = [
+  { lrn:"136728140987", studentName:"Juan M. Dela Cruz",  section:"Grade 7 - Sampaguita", reason:"Lost",    requestedAt:"2026-05-08", status:"pending" },
+  { lrn:"136728140456", studentName:"Renz G. Galang",     section:"Grade 8 - Adelfa",     reason:"Damaged", requestedAt:"2026-05-07", status:"approved" },
+  { lrn:"136728140211", studentName:"Jose A. Aguilar",    section:"Grade 9 - Bonifacio",  reason:"Lost",    requestedAt:"2026-05-06", status:"pending" },
+];
+
+// 0-I: Teacher and Parent Contact Information -------------------------------
+
+export type TeacherContact = {
+  teacher: string;
+  subject: string;
+  role: string;
+  phone: string;
+  messenger: string;
+  facebook: string;
+  email: string;
+  children?: string[]; // For parent view - which children they teach
+};
+
+export type ParentContact = {
+  parent: string;
+  children: string[];
+  section: string;
+  phone: string;
+  messenger: string;
+  facebook: string;
+  email: string;
+};
+
+export const teacherContacts: TeacherContact[] = [
+  {
+    teacher: "Ms. Aurora Aquino",
+    subject: "Grade 7 - Sampaguita",
+    role: "Adviser & Math Teacher",
+    phone: "+63 917 123 4567",
+    messenger: "aurora.aquino",
+    facebook: "aurora.aquino.teacher",
+    email: "a.aquino@stmarys.edu.ph",
+    children: ["Juan", "Bea"],
+  },
+  {
+    teacher: "Mr. Roberto Santos",
+    subject: "Grade 7 - Science",
+    role: "Science Teacher",
+    phone: "+63 918 234 5678",
+    messenger: "roberto.santos",
+    facebook: "roberto.santos.teacher",
+    email: "r.santos@stmarys.edu.ph",
+    children: ["Juan", "Bea"],
+  },
+  {
+    teacher: "Ms. Elena Reyes",
+    subject: "Grade 7 - English",
+    role: "English Teacher",
+    phone: "+63 919 345 6789",
+    messenger: "elena.reyes",
+    facebook: "elena.reyes.teacher",
+    email: "e.reyes@stmarys.edu.ph",
+    children: ["Juan", "Bea"],
+  },
+];
+
+export const parentContacts: ParentContact[] = [
+  {
+    parent: "Maria Dela Cruz",
+    children: ["Juan M. Dela Cruz", "Bea M. Dela Cruz"],
+    section: "Grade 7 - Sampaguita",
+    phone: "+63 920 456 7890",
+    messenger: "maria.delacruz",
+    facebook: "maria.delacruz.parent",
+    email: "maria.delacruz@gmail.com",
+  },
+  {
+    parent: "Jose Reyes",
+    children: ["Sofia Reyes"],
+    section: "Grade 7 - Sampaguita",
+    phone: "+63 921 567 8901",
+    messenger: "jose.reyes",
+    facebook: "jose.reyes.parent",
+    email: "jose.reyes@gmail.com",
+  },
+  {
+    parent: "Ana Santos",
+    children: ["Miguel Santos"],
+    section: "Grade 7 - Sampaguita",
+    phone: "+63 922 678 9012",
+    messenger: "ana.santos",
+    facebook: "ana.santos.parent",
+    email: "ana.santos@gmail.com",
+  },
+];
+

@@ -13,7 +13,9 @@ import { Route as TeacherRouteImport } from './routes/teacher'
 import { Route as StudentsRouteImport } from './routes/students'
 import { Route as StudentRouteImport } from './routes/student'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PrincipalRouteImport } from './routes/principal'
+import { Route as MyChildrenRouteImport } from './routes/my-children'
 import { Route as IdCardsRouteImport } from './routes/id-cards'
 import { Route as GradesRouteImport } from './routes/grades'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -42,9 +44,19 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrincipalRoute = PrincipalRouteImport.update({
   id: '/principal',
   path: '/principal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyChildrenRoute = MyChildrenRouteImport.update({
+  id: '/my-children',
+  path: '/my-children',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IdCardsRoute = IdCardsRouteImport.update({
@@ -91,7 +103,9 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
+  '/my-children': typeof MyChildrenRoute
   '/principal': typeof PrincipalRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/student': typeof StudentRoute
   '/students': typeof StudentsRoute
@@ -105,7 +119,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
+  '/my-children': typeof MyChildrenRoute
   '/principal': typeof PrincipalRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/student': typeof StudentRoute
   '/students': typeof StudentsRoute
@@ -120,7 +136,9 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
+  '/my-children': typeof MyChildrenRoute
   '/principal': typeof PrincipalRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/student': typeof StudentRoute
   '/students': typeof StudentsRoute
@@ -136,7 +154,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/grades'
     | '/id-cards'
+    | '/my-children'
     | '/principal'
+    | '/reports'
     | '/settings'
     | '/student'
     | '/students'
@@ -150,7 +170,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/grades'
     | '/id-cards'
+    | '/my-children'
     | '/principal'
+    | '/reports'
     | '/settings'
     | '/student'
     | '/students'
@@ -164,7 +186,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/grades'
     | '/id-cards'
+    | '/my-children'
     | '/principal'
+    | '/reports'
     | '/settings'
     | '/student'
     | '/students'
@@ -179,7 +203,9 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   GradesRoute: typeof GradesRoute
   IdCardsRoute: typeof IdCardsRoute
+  MyChildrenRoute: typeof MyChildrenRoute
   PrincipalRoute: typeof PrincipalRoute
+  ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   StudentRoute: typeof StudentRoute
   StudentsRoute: typeof StudentsRoute
@@ -216,11 +242,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/principal': {
       id: '/principal'
       path: '/principal'
       fullPath: '/principal'
       preLoaderRoute: typeof PrincipalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-children': {
+      id: '/my-children'
+      path: '/my-children'
+      fullPath: '/my-children'
+      preLoaderRoute: typeof MyChildrenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/id-cards': {
@@ -283,7 +323,9 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   GradesRoute: GradesRoute,
   IdCardsRoute: IdCardsRoute,
+  MyChildrenRoute: MyChildrenRoute,
   PrincipalRoute: PrincipalRoute,
+  ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   StudentRoute: StudentRoute,
   StudentsRoute: StudentsRoute,

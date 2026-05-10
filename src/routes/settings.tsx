@@ -1,21 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Save, CheckCircle2, School, GraduationCap, Bell, Moon, Sun } from "lucide-react";
+import { Save, CheckCircle2, School, GraduationCap, Bell, Moon, Sun, Calendar, Users, Shield, Database, Upload, Download, Trash2, Plus, Edit, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { SCHOOL_NAME, SCHOOL_YEAR } from "@/lib/school-data";
+import { SCHOOL_NAME, SCHOOL_YEAR, schoolCalendar } from "@/lib/school-data";
 import { useTheme } from "@/lib/theme-context";
 import { useRole } from "@/lib/role-context";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
   head: () => ({ meta: [{ title: `Settings — ${SCHOOL_NAME} (EduCard Pro)` }] }),
 });
 
-type Tab = "school" | "grading" | "notifications" | "appearance";
+type Tab = "school" | "grading" | "calendar" | "users" | "notifications" | "security" | "appearance";
 
 function SettingsPage() {
   const { role } = useRole();
@@ -27,12 +33,17 @@ function SettingsPage() {
     setTimeout(() => setSaved(null), 2500);
   }
 
-  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: "school", label: "School Info", icon: School },
+  const tabs: { id: Tab; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
+    { id: "school", label: "School Info", icon: School, adminOnly: true },
     { id: "grading", label: "Grading", icon: GraduationCap },
+    { id: "calendar", label: "Calendar", icon: Calendar, adminOnly: true },
+    { id: "users", label: "Users", icon: Users, adminOnly: true },
     { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "security", label: "Security", icon: Shield, adminOnly: true },
     { id: "appearance", label: "Appearance", icon: Moon },
   ];
+
+  const visibleTabs = tabs.filter(t => !t.adminOnly || role === "principal");
 
   return (
     <>
@@ -40,7 +51,7 @@ function SettingsPage() {
       <main className="space-y-6 p-4 sm:p-6">
         {/* Tab bar */}
         <div className="flex flex-wrap gap-2">
-          {tabs.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
@@ -57,7 +68,7 @@ function SettingsPage() {
         </div>
 
         {/* School Info */}
-        {tab === "school" && (
+        {tab === "school" && role === "principal" && (
           <SchoolInfoTab onSave={() => save("school")} saved={saved === "school"} />
         )}
 
@@ -66,9 +77,24 @@ function SettingsPage() {
           <GradingTab onSave={() => save("grading")} saved={saved === "grading"} role={role} />
         )}
 
+        {/* School Calendar */}
+        {tab === "calendar" && role === "principal" && (
+          <CalendarTab onSave={() => save("calendar")} saved={saved === "calendar"} />
+        )}
+
+        {/* User Management */}
+        {tab === "users" && role === "principal" && (
+          <UsersTab />
+        )}
+
         {/* Notifications */}
         {tab === "notifications" && (
           <NotificationsTab onSave={() => save("notifications")} saved={saved === "notifications"} />
+        )}
+
+        {/* Security */}
+        {tab === "security" && role === "principal" && (
+          <SecurityTab onSave={() => save("security")} saved={saved === "security"} />
         )}
 
         {/* Appearance */}
@@ -376,6 +402,424 @@ function AppearanceTab() {
           <p><span className="font-ui text-xs uppercase tracking-widest text-muted-foreground">Mono font: </span>System monospace — used for LRNs and codes</p>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/* ─── School Calendar Tab ─────────────────────────────────── */
+function CalendarTab({ onSave, saved }: { onSave: () => void; saved: boolean }) {
+  const [addHolidayOpen, setAddHolidayOpen] = useState(false);
+  const [holidays, setHolidays] = useState(schoolCalendar.holidays);
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Calendar className="h-4 w-4" /> School Year Calendar
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">SY {schoolCalendar.schoolYear}</p>
+          </div>
+          <Button size="sm" onClick={() => setAddHolidayOpen(true)}>
+            <Plus className="h-4 w-4" /> Add Holiday
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="font-ui text-xs uppercase tracking-wide">Current Quarter</Label>
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <p className="text-2xl font-bold text-primary">Q{schoolCalendar.currentQuarter}</p>
+                <p className="text-xs text-muted-foreground mt-1">Week {schoolCalendar.currentWeek} of {schoolCalendar.schoolDaysThisQuarter / 10}</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="font-ui text-xs uppercase tracking-wide">School Days Progress</Label>
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <p className="text-2xl font-bold">{schoolCalendar.schoolDaysCompleted} / {schoolCalendar.schoolDaysThisQuarter}</p>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-chart-2"
+                    style={{ width: `${(schoolCalendar.schoolDaysCompleted / schoolCalendar.schoolDaysThisQuarter) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-ui text-xs uppercase tracking-wide">Grading Periods</Label>
+            <div className="space-y-2">
+              {schoolCalendar.quarters.map((q) => (
+                <div key={q.label} className="flex items-center justify-between rounded-lg border bg-card p-3">
+                  <div className="flex items-center gap-3">
+                    <Badge variant={q.label === `Q${schoolCalendar.currentQuarter}` ? "default" : "outline"}>
+                      {q.label}
+                    </Badge>
+                    <div>
+                      <p className="text-sm font-semibold">{q.start} — {q.end}</p>
+                    </div>
+                  </div>
+                  {q.label === `Q${schoolCalendar.currentQuarter}` && (
+                    <Badge variant="default">Current</Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-ui text-xs uppercase tracking-wide">Holidays & Suspensions</Label>
+            <div className="space-y-2">
+              {holidays.map((date, idx) => (
+                <div key={idx} className="flex items-center justify-between rounded-lg border bg-card p-3">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-semibold">{date}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setHolidays(holidays.filter((_, i) => i !== idx));
+                      toast.success("Holiday removed");
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <Button onClick={onSave} style={{ background: "var(--gradient-primary)" }}>
+              <Save className="h-4 w-4" /> Save Calendar
+            </Button>
+            {saved && (
+              <span className="flex items-center gap-1.5 text-sm text-chart-2">
+                <CheckCircle2 className="h-4 w-4" /> Calendar saved.
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add Holiday Dialog */}
+      <Dialog open={addHolidayOpen} onOpenChange={setAddHolidayOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Holiday or Suspension</DialogTitle>
+            <DialogDescription>
+              Add a non-school day to the calendar
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Input type="date" />
+            </div>
+            <div className="space-y-2">
+              <Label>Label (Optional)</Label>
+              <Input placeholder="e.g., Rizal Day, Typhoon Suspension" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddHolidayOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => { toast.success("Holiday added"); setAddHolidayOpen(false); }}>
+              Add Holiday
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ─── User Management Tab ─────────────────────────────────── */
+function UsersTab() {
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [users] = useState([
+    { id: 1, name: "Principal Reyes", email: "principal@stmarys.edu.ph", role: "Principal", status: "Active" },
+    { id: 2, name: "Ms. Aurora Aquino", email: "a.aquino@stmarys.edu.ph", role: "Teacher", status: "Active" },
+    { id: 3, name: "Mr. Benjie Lopez", email: "b.lopez@stmarys.edu.ph", role: "Teacher", status: "Active" },
+    { id: 4, name: "Ms. Registrar Cruz", email: "registrar@stmarys.edu.ph", role: "Registrar", status: "Active" },
+  ]);
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="h-4 w-4" /> User Accounts
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">{users.length} active users</p>
+          </div>
+          <Button size="sm" onClick={() => setAddUserOpen(true)}>
+            <Plus className="h-4 w-4" /> Add User
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {users.map((user) => (
+              <div key={user.id} className="flex items-center justify-between rounded-lg border bg-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+                    {user.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{user.role}</Badge>
+                  <Badge variant="default" className="bg-chart-2">{user.status}</Badge>
+                  <Button size="sm" variant="ghost">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Role Permissions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-lg border p-3">
+              <p className="font-semibold">Principal / Admin</p>
+              <p className="text-xs text-muted-foreground mt-1">Full access to all features, settings, and data</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="font-semibold">Teacher</p>
+              <p className="text-xs text-muted-foreground mt-1">Manage own sections, input grades, mark attendance</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="font-semibold">Registrar</p>
+              <p className="text-xs text-muted-foreground mt-1">Enroll students, print ID cards, manage records</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="font-semibold">Student</p>
+              <p className="text-xs text-muted-foreground mt-1">View own grades, attendance, and notifications</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="font-semibold">Parent</p>
+              <p className="text-xs text-muted-foreground mt-1">View children's grades, attendance, and communicate with teachers</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add User Dialog */}
+      <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new user account for staff or administrators
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input placeholder="Enter full name" />
+            </div>
+            <div className="space-y-2">
+              <Label>Email Address</Label>
+              <Input type="email" placeholder="user@stmarys.edu.ph" />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="principal">Principal / Admin</SelectItem>
+                  <SelectItem value="teacher">Teacher</SelectItem>
+                  <SelectItem value="registrar">Registrar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Temporary Password</Label>
+              <Input type="password" placeholder="User will be prompted to change" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddUserOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => { toast.success("User account created"); setAddUserOpen(false); }}>
+              Create User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ─── Security Tab ────────────────────────────────────────── */
+function SecurityTab({ onSave, saved }: { onSave: () => void; saved: boolean }) {
+  const [backupDialogOpen, setBackupDialogOpen] = useState(false);
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Shield className="h-4 w-4" /> Security Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <p className="font-semibold text-sm">Two-Factor Authentication</p>
+              <p className="text-xs text-muted-foreground">Require 2FA for admin and teacher accounts</p>
+            </div>
+            <Button size="sm" variant="outline">
+              Configure
+            </Button>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <p className="font-semibold text-sm">Session Timeout</p>
+              <p className="text-xs text-muted-foreground">Auto-logout after 30 minutes of inactivity</p>
+            </div>
+            <Button size="sm" variant="outline">
+              Change
+            </Button>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <p className="font-semibold text-sm">Password Policy</p>
+              <p className="text-xs text-muted-foreground">Minimum 8 characters, must include numbers</p>
+            </div>
+            <Button size="sm" variant="outline">
+              Edit Policy
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Database className="h-4 w-4" /> Data Management
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <p className="font-semibold text-sm">Database Backup</p>
+              <p className="text-xs text-muted-foreground">Last backup: Today, 2:00 AM</p>
+            </div>
+            <Button size="sm" onClick={() => setBackupDialogOpen(true)}>
+              <Download className="h-4 w-4" /> Backup Now
+            </Button>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <p className="font-semibold text-sm">Export All Data</p>
+              <p className="text-xs text-muted-foreground">Download complete school data as CSV</p>
+            </div>
+            <Button size="sm" variant="outline">
+              <Download className="h-4 w-4" /> Export
+            </Button>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <p className="font-semibold text-sm">Import Data</p>
+              <p className="text-xs text-muted-foreground">Bulk import students, grades, or attendance</p>
+            </div>
+            <Button size="sm" variant="outline">
+              <Upload className="h-4 w-4" /> Import
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Audit Log</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {[
+              { action: "Grade updated", user: "Ms. Aurora Aquino", time: "2 hours ago" },
+              { action: "Student enrolled", user: "Ms. Registrar Cruz", time: "5 hours ago" },
+              { action: "Settings changed", user: "Principal Reyes", time: "Yesterday" },
+            ].map((log, idx) => (
+              <div key={idx} className="flex items-center justify-between rounded-lg border bg-card p-3 text-sm">
+                <div>
+                  <p className="font-semibold">{log.action}</p>
+                  <p className="text-xs text-muted-foreground">by {log.user}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">{log.time}</p>
+              </div>
+            ))}
+          </div>
+          <Button variant="outline" size="sm" className="mt-3 w-full">
+            View Full Audit Log
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="flex items-center gap-3">
+        <Button onClick={onSave} style={{ background: "var(--gradient-primary)" }}>
+          <Save className="h-4 w-4" /> Save Security Settings
+        </Button>
+        {saved && (
+          <span className="flex items-center gap-1.5 text-sm text-chart-2">
+            <CheckCircle2 className="h-4 w-4" /> Settings saved.
+          </span>
+        )}
+      </div>
+
+      {/* Backup Dialog */}
+      <Dialog open={backupDialogOpen} onOpenChange={setBackupDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Database Backup</DialogTitle>
+            <DialogDescription>
+              Generate a complete backup of all school data
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg border border-chart-1/30 bg-chart-1/10 p-4">
+              <p className="text-sm font-semibold text-chart-1">Backup includes:</p>
+              <ul className="mt-2 space-y-1 text-xs text-chart-1">
+                <li>• All student records and LRNs</li>
+                <li>• Grades and attendance data</li>
+                <li>• User accounts and permissions</li>
+                <li>• School settings and calendar</li>
+                <li>• Notification history</li>
+              </ul>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Backup will be encrypted and stored securely. You can restore from this backup at any time.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBackupDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => { toast.success("Backup created successfully"); setBackupDialogOpen(false); }}>
+              <Download className="h-4 w-4" /> Create Backup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   QrCode,
   CalendarCheck,
@@ -11,6 +12,7 @@ import {
   GraduationCap,
   Users,
   Star,
+  Download,
 } from "lucide-react";
 import {
   RadarChart,
@@ -27,6 +29,23 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import {
   SCHOOL_NAME,
@@ -74,8 +93,15 @@ const conductLog = [
 ];
 
 export function StudentView() {
+  const [reportCardOpen, setReportCardOpen] = useState(false);
+  
   const currentQ3Avg = subjects.reduce((a, s) => a + s.q3, 0) / subjects.length;
   const isAboveTarget = myLearner.attendanceRate >= SF2_TARGET;
+
+  const handleDownloadReportCard = () => {
+    toast.success("Report card PDF downloaded");
+    setReportCardOpen(false);
+  };
 
   return (
     <>
@@ -252,8 +278,16 @@ export function StudentView() {
 
         <section className="grid gap-6 lg:grid-cols-2">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">My Learner ID</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReportCardOpen(true)}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download Report Card
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="mx-auto w-full max-w-sm overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -315,6 +349,79 @@ export function StudentView() {
           <GraduationCap className="h-3.5 w-3.5" />
           EduCard Pro · Student Portal · {SCHOOL_NAME} · SY {SCHOOL_YEAR}
         </footer>
+
+        {/* Report Card Dialog */}
+        <Dialog open={reportCardOpen} onOpenChange={setReportCardOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>3rd Quarter Report Card</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {/* Report Card Header */}
+              <div className="text-center border-b pb-4">
+                <h3 className="text-lg font-bold">{SCHOOL_NAME}</h3>
+                <p className="text-sm text-muted-foreground">School Year {SCHOOL_YEAR}</p>
+                <p className="mt-2 font-semibold">{fullName(myLearner)}</p>
+                <p className="text-sm text-muted-foreground">{myRecord.sectionLabel}</p>
+                <p className="text-xs text-muted-foreground">LRN: {myLearner.lrn}</p>
+              </div>
+
+              {/* Grades Table */}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Subject</TableHead>
+                    <TableHead className="text-center">Q1</TableHead>
+                    <TableHead className="text-center">Q2</TableHead>
+                    <TableHead className="text-center">Q3</TableHead>
+                    <TableHead className="text-center">Q4</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {subjects.map((s) => (
+                    <TableRow key={s.name}>
+                      <TableCell className="font-medium">{s.name}</TableCell>
+                      <TableCell className="text-center">{s.q1}</TableCell>
+                      <TableCell className="text-center">{s.q2}</TableCell>
+                      <TableCell className="text-center font-semibold">{s.q3}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">
+                        {s.q4 ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="bg-muted/50 font-semibold">
+                    <TableCell>General Average</TableCell>
+                    <TableCell className="text-center">
+                      {(subjects.reduce((a, s) => a + s.q1, 0) / subjects.length).toFixed(1)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {(subjects.reduce((a, s) => a + s.q2, 0) / subjects.length).toFixed(1)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {currentQ3Avg.toFixed(1)}
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">—</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+
+              {/* Footer Info */}
+              <div className="text-xs text-muted-foreground text-center border-t pt-4">
+                <p>Attendance Rate: {myLearner.attendanceRate.toFixed(1)}%</p>
+                <p className="mt-1">Status: {isAboveTarget ? "On Track" : "Needs Attention"}</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setReportCardOpen(false)}>
+                Close
+              </Button>
+              <Button onClick={handleDownloadReportCard}>
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </>
   );

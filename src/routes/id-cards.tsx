@@ -1,13 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { QrCode, Users, Printer, Download, CheckCircle2, IdCard, Search } from "lucide-react";
+import { QrCode, Users, Printer, Download, CheckCircle2, IdCard, Search, FileText, AlertCircle, Clock, CheckCheck, Upload, Palette } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
-import { SCHOOL_NAME, SCHOOL_YEAR, fullName, allLearners, allSections } from "@/lib/school-data";
+import { SCHOOL_NAME, SCHOOL_YEAR, fullName, allLearners, allSections, idPrintHistory, idReprintRequests } from "@/lib/school-data";
 import { useRole } from "@/lib/role-context";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/id-cards")({
   component: IDCardsPage,
@@ -59,6 +66,12 @@ function PrincipalIDCards() {
   const [search, setSearch] = useState("");
   const [printed, setPrinted] = useState<Set<string>>(new Set());
   const [batchDone, setBatchDone] = useState(false);
+  const [reprintDialogOpen, setReprintDialogOpen] = useState(false);
+  const [printHistoryOpen, setPrintHistoryOpen] = useState(false);
+  const [templateEditorOpen, setTemplateEditorOpen] = useState(false);
+  const [selectedLrn, setSelectedLrn] = useState<string | null>(null);
+  const [reprintReason, setReprintReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
 
   const filtered = allLearners.filter((l) => {
     const q = search.toLowerCase();
@@ -73,6 +86,29 @@ function PrincipalIDCards() {
     });
   }
 
+  function handleRequestReprint(lrn: string) {
+    setSelectedLrn(lrn);
+    setReprintDialogOpen(true);
+  }
+
+  function handleSubmitReprint() {
+    if (!reprintReason) {
+      toast.error("Please select a reason for reprint");
+      return;
+    }
+    if (reprintReason === "other" && !customReason.trim()) {
+      toast.error("Please provide a custom reason");
+      return;
+    }
+    const reason = reprintReason === "other" ? customReason : reprintReason;
+    const student = allLearners.find(l => l.learner.lrn === selectedLrn);
+    toast.success(`Reprint request submitted for ${student ? fullName(student.learner) : "student"} — Reason: ${reason}`);
+    setReprintDialogOpen(false);
+    setReprintReason("");
+    setCustomReason("");
+    setSelectedLrn(null);
+  }
+
   return (
     <>
       <PageHeader title="ID Cards" subtitle={`Batch management · ${SCHOOL_NAME} · SY ${SCHOOL_YEAR}`} />
@@ -82,7 +118,7 @@ function PrincipalIDCards() {
             { label: "Total Cards", value: allLearners.length, accent: "text-chart-3" },
             { label: "Printed", value: printed.size, accent: "text-chart-2" },
             { label: "Pending", value: allLearners.length - printed.size, accent: "text-orange-500" },
-            { label: "Sections", value: allSections.length, accent: "text-chart-1" },
+            { label: "Reprint Requests", value: idReprintRequests.filter(r => r.status === "pending").length, accent: "text-chart-1" },
           ].map((m) => (
             <Card key={m.label} className="border-border/60">
               <CardContent className="p-5">
@@ -92,6 +128,64 @@ function PrincipalIDCards() {
             </Card>
           ))}
         </section>
+
+        {/* Reprint Requests Card */}
+        <Card>
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-base">Reprint Requests</CardTitle>
+              <p className="text-xs text-muted-foreground">{idReprintRequests.filter(r => r.status === "pending").length} pending requests</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setPrintHistoryOpen(true)}>
+                <FileText className="h-4 w-4" /> Print History
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setTemplateEditorOpen(true)}>
+                <Palette className="h-4 w-4" /> Template Editor
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {idReprintRequests.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No reprint requests yet
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {idReprintRequests.map((req, idx) => (
+                  <div key={idx} className="flex items-center justify-between rounded-lg border bg-card p-4">
+                    <div className="flex-1">
+                      <p className="font-semibold">{req.studentName}</p>
+                      <p className="text-sm text-muted-foreground">{req.section} · LRN: {req.lrn}</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Badge variant={req.reason === "Lost" ? "destructive" : "secondary"} className="text-xs">
+                          {req.reason}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">Requested: {req.requestedAt}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {req.status === "pending" ? (
+                        <>
+                          <Badge variant="outline" className="text-orange-500">
+                            <Clock className="mr-1 h-3 w-3" /> Pending
+                          </Badge>
+                          <Button size="sm" onClick={() => toast.success(`Approved reprint for ${req.studentName}`)}>
+                            Approve
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge variant="outline" className="text-chart-2">
+                          <CheckCheck className="mr-1 h-3 w-3" /> Approved
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -134,22 +228,205 @@ function PrincipalIDCards() {
                     dept={l.department.key}
                     gradient={l.department.key === "JHS" ? "var(--gradient-primary)" : "var(--gradient-accent)"}
                   />
-                  <button
-                    onClick={() => togglePrint(l.learner.lrn)}
-                    className={`mt-2 w-full rounded-lg border py-1.5 font-ui text-[11px] uppercase tracking-wider transition-colors ${
-                      printed.has(l.learner.lrn)
-                        ? "border-chart-2/40 bg-chart-2/10 text-chart-2"
-                        : "border-border/60 bg-card text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {printed.has(l.learner.lrn) ? "✓ Printed" : "Mark Printed"}
-                  </button>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={() => togglePrint(l.learner.lrn)}
+                      className={`flex-1 rounded-lg border py-1.5 font-ui text-[11px] uppercase tracking-wider transition-colors ${
+                        printed.has(l.learner.lrn)
+                          ? "border-chart-2/40 bg-chart-2/10 text-chart-2"
+                          : "border-border/60 bg-card text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {printed.has(l.learner.lrn) ? "✓ Printed" : "Mark Printed"}
+                    </button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-auto px-2 py-1.5 text-[11px]"
+                      onClick={() => handleRequestReprint(l.learner.lrn)}
+                    >
+                      Reprint
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
       </main>
+
+      {/* Reprint Request Dialog */}
+      <Dialog open={reprintDialogOpen} onOpenChange={setReprintDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request ID Card Reprint</DialogTitle>
+            <DialogDescription>
+              Submit a reprint request for this student's ID card
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Reason for Reprint</Label>
+              <Select value={reprintReason} onValueChange={setReprintReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lost">Lost</SelectItem>
+                  <SelectItem value="damaged">Damaged</SelectItem>
+                  <SelectItem value="renewal">Renewal</SelectItem>
+                  <SelectItem value="photo_update">Photo Update</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {reprintReason === "other" && (
+              <div className="space-y-2">
+                <Label>Custom Reason</Label>
+                <Textarea
+                  placeholder="Describe the reason for reprint..."
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReprintDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitReprint}>
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Print History Sheet */}
+      <Sheet open={printHistoryOpen} onOpenChange={setPrintHistoryOpen}>
+        <SheetContent className="w-full sm:max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>ID Card Print History</SheetTitle>
+            <SheetDescription>
+              Complete history of all ID card prints and reprints
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-6 space-y-3">
+            {idPrintHistory.map((record, idx) => {
+              const student = allLearners.find(l => l.learner.lrn === record.lrn);
+              return (
+                <Card key={idx}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold">{student ? fullName(student.learner) : "Unknown Student"}</p>
+                        <p className="text-sm text-muted-foreground">LRN: {record.lrn}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Badge variant={record.type === "original" ? "default" : "secondary"}>
+                            {record.type === "original" ? "Original" : "Reprint"}
+                          </Badge>
+                          {record.reprintReason && (
+                            <Badge variant="outline">{record.reprintReason}</Badge>
+                          )}
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Printed by {record.printedBy} on {record.printedAt}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline">
+                        <Download className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Template Editor Dialog */}
+      <Dialog open={templateEditorOpen} onOpenChange={setTemplateEditorOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>ID Card Template Editor</DialogTitle>
+            <DialogDescription>
+              Customize the ID card design for SY {SCHOOL_YEAR}
+            </DialogDescription>
+          </DialogHeader>
+          <Tabs defaultValue="design" className="mt-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="design">Design</TabsTrigger>
+              <TabsTrigger value="layout">Layout</TabsTrigger>
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+            </TabsList>
+            <TabsContent value="design" className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Background Image</Label>
+                <div className="flex gap-2">
+                  <Input type="file" accept="image/*" />
+                  <Button variant="outline">
+                    <Upload className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Recommended: 1012 × 638px (CR-80 at 300 DPI)</p>
+              </div>
+              <div className="space-y-2">
+                <Label>School Logo</Label>
+                <div className="flex gap-2">
+                  <Input type="file" accept="image/*" />
+                  <Button variant="outline">
+                    <Upload className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Primary Color</Label>
+                <div className="flex gap-2">
+                  <Input type="color" defaultValue="#3b82f6" className="h-10 w-20" />
+                  <Input type="text" defaultValue="#3b82f6" className="flex-1" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Text Color</Label>
+                <div className="flex gap-2">
+                  <Input type="color" defaultValue="#ffffff" className="h-10 w-20" />
+                  <Input type="text" defaultValue="#ffffff" className="flex-1" />
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="layout" className="space-y-4 py-4">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-sm text-muted-foreground">
+                  Layout customization coming soon. Current layout follows DepEd CR-80 standard with fixed positions for photo, name, LRN, and QR code.
+                </p>
+              </div>
+            </TabsContent>
+            <TabsContent value="preview" className="py-4">
+              <div className="flex justify-center">
+                <div className="w-full max-w-sm">
+                  <MiniIDCard
+                    name="Juan M. Dela Cruz"
+                    lrn="136728140987"
+                    section="Grade 7 - Sampaguita"
+                    dept="JHS"
+                    gradient="var(--gradient-primary)"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTemplateEditorOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => { toast.success("Template saved successfully"); setTemplateEditorOpen(false); }}>
+              Save Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -158,6 +435,33 @@ function PrincipalIDCards() {
 function TeacherIDCards() {
   const mySection = allSections.find((s) => s.section.id === "g7-sampaguita")!;
   const [printed, setPrinted] = useState(false);
+  const [reprintDialogOpen, setReprintDialogOpen] = useState(false);
+  const [selectedLrn, setSelectedLrn] = useState<string | null>(null);
+  const [reprintReason, setReprintReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
+
+  function handleRequestReprint(lrn: string) {
+    setSelectedLrn(lrn);
+    setReprintDialogOpen(true);
+  }
+
+  function handleSubmitReprint() {
+    if (!reprintReason) {
+      toast.error("Please select a reason for reprint");
+      return;
+    }
+    if (reprintReason === "other" && !customReason.trim()) {
+      toast.error("Please provide a custom reason");
+      return;
+    }
+    const reason = reprintReason === "other" ? customReason : reprintReason;
+    const student = mySection.section.learners.find(l => l.lrn === selectedLrn);
+    toast.success(`Reprint request submitted for ${student ? fullName(student) : "student"} — Pending admin approval`);
+    setReprintDialogOpen(false);
+    setReprintReason("");
+    setCustomReason("");
+    setSelectedLrn(null);
+  }
 
   return (
     <>
@@ -181,19 +485,76 @@ function TeacherIDCards() {
             )}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {mySection.section.learners.map((l) => (
-                <MiniIDCard
-                  key={l.lrn}
-                  name={fullName(l)}
-                  lrn={l.lrn}
-                  section={mySection.label}
-                  dept="JHS"
-                  gradient="var(--gradient-accent)"
-                />
+                <div key={l.lrn}>
+                  <MiniIDCard
+                    name={fullName(l)}
+                    lrn={l.lrn}
+                    section={mySection.label}
+                    dept="JHS"
+                    gradient="var(--gradient-accent)"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 w-full"
+                    onClick={() => handleRequestReprint(l.lrn)}
+                  >
+                    Request Reprint
+                  </Button>
+                </div>
               ))}
             </div>
           </CardContent>
         </Card>
       </main>
+
+      {/* Reprint Request Dialog */}
+      <Dialog open={reprintDialogOpen} onOpenChange={setReprintDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request ID Card Reprint</DialogTitle>
+            <DialogDescription>
+              Submit a reprint request to the admin for approval
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Reason for Reprint</Label>
+              <Select value={reprintReason} onValueChange={setReprintReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lost">Lost</SelectItem>
+                  <SelectItem value="damaged">Damaged</SelectItem>
+                  <SelectItem value="renewal">Renewal</SelectItem>
+                  <SelectItem value="photo_update">Photo Update</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {reprintReason === "other" && (
+              <div className="space-y-2">
+                <Label>Custom Reason</Label>
+                <Textarea
+                  placeholder="Describe the reason for reprint..."
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReprintDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitReprint}>
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -202,6 +563,31 @@ function TeacherIDCards() {
 function StudentIDCard() {
   const myRecord = allLearners.find((l) => l.learner.lrn === "136728140987")!;
   const l = myRecord.learner;
+  const [photoUploadOpen, setPhotoUploadOpen] = useState(false);
+  const [reprintDialogOpen, setReprintDialogOpen] = useState(false);
+  const [reprintReason, setReprintReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
+
+  function handlePhotoUpload() {
+    toast.success("Photo uploaded successfully — ID card will be regenerated");
+    setPhotoUploadOpen(false);
+  }
+
+  function handleSubmitReprint() {
+    if (!reprintReason) {
+      toast.error("Please select a reason for reprint");
+      return;
+    }
+    if (reprintReason === "other" && !customReason.trim()) {
+      toast.error("Please provide a custom reason");
+      return;
+    }
+    const reason = reprintReason === "other" ? customReason : reprintReason;
+    toast.success(`Reprint request submitted — Reason: ${reason}. Pending admin approval.`);
+    setReprintDialogOpen(false);
+    setReprintReason("");
+    setCustomReason("");
+  }
 
   return (
     <>
@@ -265,8 +651,11 @@ function StudentIDCard() {
           >
             <Download className="h-4 w-4" /> Download PDF
           </Button>
-          <Button variant="outline">
-            <Printer className="h-4 w-4" /> Print Card
+          <Button variant="outline" onClick={() => setPhotoUploadOpen(true)}>
+            <Upload className="h-4 w-4" /> Update Photo
+          </Button>
+          <Button variant="outline" onClick={() => setReprintDialogOpen(true)}>
+            <Printer className="h-4 w-4" /> Request Reprint
           </Button>
         </div>
 
@@ -291,6 +680,99 @@ function StudentIDCard() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Photo Upload Dialog */}
+      <Dialog open={photoUploadOpen} onOpenChange={setPhotoUploadOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update ID Photo</DialogTitle>
+            <DialogDescription>
+              Upload a new photo for your ID card. Photo will be reviewed before printing.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Photo Requirements</Label>
+              <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+                <ul className="list-inside list-disc space-y-1 text-muted-foreground">
+                  <li>Recent photo (taken within last 6 months)</li>
+                  <li>Plain white or light-colored background</li>
+                  <li>Face clearly visible, no sunglasses or hats</li>
+                  <li>File format: JPG or PNG</li>
+                  <li>Maximum file size: 2MB</li>
+                  <li>Recommended: 600 × 800 pixels</li>
+                </ul>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Upload Photo</Label>
+              <Input type="file" accept="image/jpeg,image/png" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPhotoUploadOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handlePhotoUpload}>
+              Upload Photo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reprint Request Dialog */}
+      <Dialog open={reprintDialogOpen} onOpenChange={setReprintDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request ID Card Reprint</DialogTitle>
+            <DialogDescription>
+              Submit a reprint request to the admin for approval
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Reason for Reprint</Label>
+              <Select value={reprintReason} onValueChange={setReprintReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lost">Lost</SelectItem>
+                  <SelectItem value="damaged">Damaged</SelectItem>
+                  <SelectItem value="renewal">Renewal</SelectItem>
+                  <SelectItem value="photo_update">Photo Update</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {reprintReason === "other" && (
+              <div className="space-y-2">
+                <Label>Custom Reason</Label>
+                <Textarea
+                  placeholder="Describe the reason for reprint..."
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
+            <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-600">
+              <div className="flex gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>Reprint requests require admin approval. You will be notified once approved.</p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReprintDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitReprint}>
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
