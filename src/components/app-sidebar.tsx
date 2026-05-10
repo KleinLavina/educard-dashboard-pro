@@ -1,4 +1,4 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Users,
@@ -10,6 +10,7 @@ import {
   School,
   BookOpen,
   Home,
+  ChevronRight,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,13 +31,15 @@ const navConfig: Record<
   Role,
   {
     label: string;
+    sublabel: string;
     icon: React.ElementType;
     main: { title: string; url: string; icon: React.ElementType }[];
     tools: { title: string; url: string; icon: React.ElementType }[];
   }
 > = {
   principal: {
-    label: "Principal / Registrar",
+    label: "Principal",
+    sublabel: "Registrar · St. Mary's Academy",
     icon: School,
     main: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -51,7 +54,8 @@ const navConfig: Record<
     ],
   },
   teacher: {
-    label: "Teacher Portal",
+    label: "Teacher",
+    sublabel: "Ms. Aurora Aquino · Grade 7",
     icon: BookOpen,
     main: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -66,7 +70,8 @@ const navConfig: Record<
     ],
   },
   student: {
-    label: "Student Portal",
+    label: "Student",
+    sublabel: "Juan M. Dela Cruz · Grade 7",
     icon: Users,
     main: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -81,12 +86,6 @@ const navConfig: Record<
   },
 };
 
-const roleSwitcher: { role: Role; label: string; icon: React.ElementType }[] = [
-  { role: "principal", label: "Principal", icon: School },
-  { role: "teacher", label: "Teacher", icon: BookOpen },
-  { role: "student", label: "Student", icon: Users },
-];
-
 const roleGradients: Record<Role, string> = {
   principal: "var(--gradient-primary)",
   teacher: "var(--gradient-accent)",
@@ -96,15 +95,9 @@ const roleGradients: Record<Role, string> = {
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { role, setRole } = useRole();
-  const navigate = useNavigate();
+  const { role } = useRole();
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
   const nav = navConfig[role];
-
-  function switchRole(newRole: Role) {
-    setRole(newRole);
-    navigate({ to: "/dashboard" });
-  }
 
   const isActive = (url: string) => {
     if (url === "/dashboard") return currentPath === "/dashboard";
@@ -113,7 +106,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="border-b border-sidebar-border/40">
+      {/* ── Logo ── */}
+      <SidebarHeader className="border-b border-sidebar-border/40 pb-0">
         <div className="flex items-center justify-center gap-3 px-2 py-3">
           {collapsed ? (
             <img
@@ -124,47 +118,45 @@ export function AppSidebar() {
           ) : (
             <img
               src="/Screenshot_2026-05-10_100606-removebg-preview.png"
-              alt="School branding"
+              alt="EduCard Pro"
               className="h-9 max-w-[140px] object-contain"
             />
           )}
         </div>
 
-        {!collapsed && (
-          <div
-            className="mx-2 mb-2 flex items-center gap-2 rounded-lg px-3 py-2 text-primary-foreground"
-            style={{ background: roleGradients[role] }}
-          >
-            <nav.icon className="h-4 w-4 shrink-0" />
-            <span className="truncate font-ui text-[11px] uppercase tracking-wider">{nav.label}</span>
-          </div>
-        )}
+        {/* Role identity card — clicking takes you to landing to switch */}
+        <Link to="/" title="Switch role">
+          {collapsed ? (
+            <div
+              className="mx-2 mb-3 flex items-center justify-center rounded-lg p-2 text-primary-foreground"
+              style={{ background: roleGradients[role] }}
+            >
+              <nav.icon className="h-4 w-4" />
+            </div>
+          ) : (
+            <div
+              className="group mx-2 mb-3 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-primary-foreground transition-opacity hover:opacity-90"
+              style={{ background: roleGradients[role] }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/20">
+                  <nav.icon className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-ui text-[11px] font-semibold uppercase tracking-widest">
+                    {nav.label}
+                  </p>
+                  <p className="truncate text-[10px] opacity-75">{nav.sublabel}</p>
+                </div>
+              </div>
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5" />
+            </div>
+          )}
+        </Link>
       </SidebarHeader>
 
+      {/* ── Navigation ── */}
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="font-ui uppercase tracking-widest">
-            {collapsed ? "Role" : "Navigate as"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {roleSwitcher.map((r) => (
-                <SidebarMenuItem key={r.role}>
-                  <SidebarMenuButton
-                    isActive={role === r.role}
-                    tooltip={r.label}
-                    onClick={() => switchRole(r.role)}
-                    className="cursor-pointer"
-                  >
-                    <r.icon className="h-4 w-4" />
-                    <span>{r.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
         <SidebarGroup>
           <SidebarGroupLabel className="font-ui uppercase tracking-widest">Main</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -202,19 +194,20 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
+      {/* ── Footer ── */}
       <SidebarFooter className="border-t border-sidebar-border/40">
         {!collapsed ? (
           <Link
             to="/"
-            className="flex items-center gap-2 px-2 py-2 font-ui text-[11px] uppercase tracking-widest text-sidebar-foreground/60 transition-colors hover:text-sidebar-foreground"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 font-ui text-[11px] uppercase tracking-widest text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
             <Home className="h-3.5 w-3.5 shrink-0" />
-            Back to Landing
+            Switch Role / Landing
           </Link>
         ) : (
           <Link
             to="/"
-            className="flex items-center justify-center py-2 text-sidebar-foreground/60 transition-colors hover:text-sidebar-foreground"
+            className="flex items-center justify-center rounded-lg py-2 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
             <Home className="h-4 w-4" />
           </Link>
