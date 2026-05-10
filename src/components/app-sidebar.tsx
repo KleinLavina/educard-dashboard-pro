@@ -7,7 +7,6 @@ import {
   IdCard,
   Bell,
   Settings,
-  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -46,20 +45,19 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="border-b border-sidebar-border/40">
-        <div className="flex items-center gap-3 px-2 py-3">
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sidebar-primary-foreground shadow-[var(--shadow-glow)]"
-            style={{ background: "var(--gradient-primary)" }}
-          >
-            <Sparkles className="h-4 w-4" />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">EduCard Pro</p>
-              <p className="truncate text-[11px] text-sidebar-foreground/60">
-                St. Mary's Academy
-              </p>
-            </div>
+        <div className="flex items-center justify-center gap-3 px-2 py-3">
+          {collapsed ? (
+            <img
+              src="/Screenshot_2026-05-10_102005-removebg-preview.png"
+              alt="Logo"
+              className="h-8 w-8 object-contain"
+            />
+          ) : (
+            <img
+              src="/Screenshot_2026-05-10_100606-removebg-preview.png"
+              alt="School branding"
+              className="h-9 max-w-[140px] object-contain"
+            />
           )}
         </div>
       </SidebarHeader>
