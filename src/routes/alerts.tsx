@@ -3,23 +3,57 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Bell, CheckCircle2, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { allSections, allLearners, SF2_TARGET, fullName } from "@/lib/school-data";
 
 export const Route = createFileRoute("/alerts")({
   component: AlertsPage,
   head: () => ({
     meta: [
       { title: "Alerts — EduCard Pro" },
-      { name: "description", content: "School-wide alerts and notifications." },
+      { name: "description", content: "School-wide alerts and SF2 follow-ups." },
     ],
   }),
 });
 
+const belowSections = allSections.filter((s) => s.belowTarget);
+const flagged = allLearners.filter((l) => l.learner.attendanceRate < SF2_TARGET);
+
 const items = [
-  { icon: AlertTriangle, tone: "warn", title: "Chronic absences", text: "5 students absent for 3+ days", time: "10 min ago" },
-  { icon: Bell, tone: "info", title: "Print queue", text: "3 report cards pending printing", time: "1h ago" },
-  { icon: AlertTriangle, tone: "warn", title: "Grade dispute", text: "2 grade disputes awaiting review", time: "2h ago" },
-  { icon: Info, tone: "info", title: "Parent request", text: "1 parent requested ID reprint", time: "Yesterday" },
-  { icon: CheckCircle2, tone: "ok", title: "Quarter closed", text: "2nd Quarter grades sealed successfully", time: "2 days ago" },
+  ...belowSections.map((s) => ({
+    icon: AlertTriangle,
+    tone: "warn" as const,
+    title: `${s.label} below SF2 target`,
+    text: `Attendance ${s.attendance.toFixed(1)}% (target ${SF2_TARGET}%) — Adviser ${s.section.adviser}`,
+    time: "Today",
+  })),
+  ...flagged.slice(0, 3).map((l) => ({
+    icon: AlertTriangle,
+    tone: "warn" as const,
+    title: `Chronic absence: ${fullName(l.learner)}`,
+    text: `LRN ${l.learner.lrn} · ${l.sectionLabel} · ${l.learner.attendanceRate.toFixed(1)}%`,
+    time: "Today",
+  })),
+  {
+    icon: Bell,
+    tone: "info" as const,
+    title: "SF2 submission reminder",
+    text: "Submit SF2 to Division Office on or before May 15",
+    time: "1d ago",
+  },
+  {
+    icon: Info,
+    tone: "info" as const,
+    title: "LRN reprint request",
+    text: "1 parent requested a reissued LRN ID card",
+    time: "Yesterday",
+  },
+  {
+    icon: CheckCircle2,
+    tone: "ok" as const,
+    title: "Quarter sealed",
+    text: "2nd Quarter grades successfully sealed",
+    time: "2d ago",
+  },
 ];
 
 const tones: Record<string, string> = {
@@ -31,7 +65,7 @@ const tones: Record<string, string> = {
 function AlertsPage() {
   return (
     <>
-      <PageHeader title="Alerts" subtitle="Notifications across the school" />
+      <PageHeader title="Alerts" subtitle="SF2 follow-ups and registrar notices" />
       <main className="space-y-6 p-4 sm:p-6">
         <Card>
           <CardHeader>
