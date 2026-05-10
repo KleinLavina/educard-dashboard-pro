@@ -9,22 +9,40 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TeacherRouteImport } from './routes/teacher'
 import { Route as StudentsRouteImport } from './routes/students'
+import { Route as StudentRouteImport } from './routes/student'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PrincipalRouteImport } from './routes/principal'
 import { Route as IdCardsRouteImport } from './routes/id-cards'
 import { Route as GradesRouteImport } from './routes/grades'
 import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TeacherRoute = TeacherRouteImport.update({
+  id: '/teacher',
+  path: '/teacher',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudentsRoute = StudentsRouteImport.update({
   id: '/students',
   path: '/students',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudentRoute = StudentRouteImport.update({
+  id: '/student',
+  path: '/student',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrincipalRoute = PrincipalRouteImport.update({
+  id: '/principal',
+  path: '/principal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IdCardsRoute = IdCardsRouteImport.update({
@@ -59,8 +77,11 @@ export interface FileRoutesByFullPath {
   '/attendance': typeof AttendanceRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
+  '/principal': typeof PrincipalRoute
   '/settings': typeof SettingsRoute
+  '/student': typeof StudentRoute
   '/students': typeof StudentsRoute
+  '/teacher': typeof TeacherRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -68,8 +89,11 @@ export interface FileRoutesByTo {
   '/attendance': typeof AttendanceRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
+  '/principal': typeof PrincipalRoute
   '/settings': typeof SettingsRoute
+  '/student': typeof StudentRoute
   '/students': typeof StudentsRoute
+  '/teacher': typeof TeacherRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -78,8 +102,11 @@ export interface FileRoutesById {
   '/attendance': typeof AttendanceRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
+  '/principal': typeof PrincipalRoute
   '/settings': typeof SettingsRoute
+  '/student': typeof StudentRoute
   '/students': typeof StudentsRoute
+  '/teacher': typeof TeacherRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -89,8 +116,11 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/grades'
     | '/id-cards'
+    | '/principal'
     | '/settings'
+    | '/student'
     | '/students'
+    | '/teacher'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -98,8 +128,11 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/grades'
     | '/id-cards'
+    | '/principal'
     | '/settings'
+    | '/student'
     | '/students'
+    | '/teacher'
   id:
     | '__root__'
     | '/'
@@ -107,8 +140,11 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/grades'
     | '/id-cards'
+    | '/principal'
     | '/settings'
+    | '/student'
     | '/students'
+    | '/teacher'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -117,12 +153,22 @@ export interface RootRouteChildren {
   AttendanceRoute: typeof AttendanceRoute
   GradesRoute: typeof GradesRoute
   IdCardsRoute: typeof IdCardsRoute
+  PrincipalRoute: typeof PrincipalRoute
   SettingsRoute: typeof SettingsRoute
+  StudentRoute: typeof StudentRoute
   StudentsRoute: typeof StudentsRoute
+  TeacherRoute: typeof TeacherRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/teacher': {
+      id: '/teacher'
+      path: '/teacher'
+      fullPath: '/teacher'
+      preLoaderRoute: typeof TeacherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/students': {
       id: '/students'
       path: '/students'
@@ -130,11 +176,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/student': {
+      id: '/student'
+      path: '/student'
+      fullPath: '/student'
+      preLoaderRoute: typeof StudentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/principal': {
+      id: '/principal'
+      path: '/principal'
+      fullPath: '/principal'
+      preLoaderRoute: typeof PrincipalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/id-cards': {
@@ -181,8 +241,11 @@ const rootRouteChildren: RootRouteChildren = {
   AttendanceRoute: AttendanceRoute,
   GradesRoute: GradesRoute,
   IdCardsRoute: IdCardsRoute,
+  PrincipalRoute: PrincipalRoute,
   SettingsRoute: SettingsRoute,
+  StudentRoute: StudentRoute,
   StudentsRoute: StudentsRoute,
+  TeacherRoute: TeacherRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

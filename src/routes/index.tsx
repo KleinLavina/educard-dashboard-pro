@@ -1,471 +1,315 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Users,
-  UserCheck,
-  AlertTriangle,
+  GraduationCap,
+  IdCard,
+  CalendarCheck,
   Bell,
   QrCode,
-  TrendingUp,
+  BarChart3,
+  Shield,
+  Users,
+  ChevronRight,
   School,
   BookOpen,
-  ShieldCheck,
-  GraduationCap,
+  Star,
+  CheckCircle2,
+  Smartphone,
+  Printer,
 } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { PageHeader } from "@/components/page-header";
-import {
-  SF2_TARGET,
-  SCHOOL_NAME,
-  SCHOOL_YEAR,
-  departments,
-  departmentStats,
-  allLearners,
-  totals,
-  fullName,
-  type Section as SectionT,
-} from "@/lib/school-data";
 
 export const Route = createFileRoute("/")({
-  component: Dashboard,
+  component: LandingPage,
   head: () => ({
     meta: [
-      { title: `Principal's Portal — ${SCHOOL_NAME} (EduCard Pro)` },
+      { title: "EduCard Pro — School Management & ID System" },
       {
         name: "description",
         content:
-          "Principal and Registrar overview of Junior and Senior High School departments, SF2 attendance, sections, and advisers.",
+          "All-in-one platform: Grades, Attendance, ID Generation, Parent Notifications for Philippine K-12 schools.",
       },
     ],
   }),
 });
 
-const jhs = departmentStats(departments[0]);
-const shs = departmentStats(departments[1]);
-
-const attendanceTrend = [
-  { day: "Mon", value: 94 },
-  { day: "Tue", value: 92 },
-  { day: "Wed", value: 89 },
-  { day: "Thu", value: 95 },
-  { day: "Fri", value: 91 },
-  { day: "Sat", value: 88 },
-  { day: "Sun", value: 93 },
+const features = [
+  {
+    icon: GraduationCap,
+    title: "Grade Management",
+    desc: "Real-time grade entry with configurable formula engine. Bulk import via Excel/CSV. Instant parent alerts on new grades.",
+    color: "text-chart-1",
+    bg: "bg-chart-1/10",
+  },
+  {
+    icon: CalendarCheck,
+    title: "SF2 Attendance Tracking",
+    desc: "USB barcode scanner or webcam scanning. Time-in/out logs per session. DepEd SF2-compliant reports generated automatically.",
+    color: "text-chart-2",
+    bg: "bg-chart-2/10",
+  },
+  {
+    icon: IdCard,
+    title: "Student ID System",
+    desc: "Drag-and-drop template editor. CR-80 PVC card-ready print output at 300 DPI. Auto-queue on enrollment.",
+    color: "text-chart-3",
+    bg: "bg-chart-3/10",
+  },
+  {
+    icon: Bell,
+    title: "Parent Notifications",
+    desc: "Free Facebook Messenger alerts via Meta Cloud API. SMS fallback via Semaphore. Instant scan-triggered messages.",
+    color: "text-chart-5",
+    bg: "bg-chart-5/10",
+  },
 ];
 
-const departmentBars = [
-  { name: "JHS", attendance: Number(jhs.rate.toFixed(1)), target: SF2_TARGET },
-  { name: "SHS", attendance: Number(shs.rate.toFixed(1)), target: SF2_TARGET },
+const pillars = [
+  { icon: Shield, text: "Role-based access control" },
+  { icon: BarChart3, text: "SF2-compliant analytics" },
+  { icon: Smartphone, text: "Messenger & SMS alerts" },
+  { icon: QrCode, text: "Barcode attendance scanning" },
+  { icon: Printer, text: "PVC ID card printing" },
+  { icon: School, text: "Multi-school / multi-tenant" },
 ];
 
-const flaggedLearners = allLearners
-  .filter((l) => l.learner.attendanceRate < SF2_TARGET)
-  .sort((a, b) => a.learner.attendanceRate - b.learner.attendanceRate)
-  .slice(0, 6);
-
-const alerts = [
-  { icon: AlertTriangle, text: `${totals.below} sections below SF2 ${SF2_TARGET}% target`, tone: "warn" },
-  { icon: Bell, text: "SF2 reports due to Division Office on May 15", tone: "info" },
-  { icon: AlertTriangle, text: `${flaggedLearners.length} learners flagged for chronic absence`, tone: "warn" },
-  { icon: Bell, text: "2 LRN reprint requests from advisers", tone: "info" },
+const roles = [
+  {
+    key: "principal",
+    title: "Principal / Registrar",
+    subtitle: "School-wide overview",
+    desc: "SF2 compliance dashboard, department analytics, flagged learners, section summaries, and registrar alerts — all in one view.",
+    icon: School,
+    link: "/principal",
+    gradient: "var(--gradient-primary)",
+    items: ["Campus attendance overview", "SF2 compliance tracking", "Section & department stats", "Learner ID preview"],
+  },
+  {
+    key: "teacher",
+    title: "Teacher",
+    subtitle: "Class management",
+    desc: "Grade entry with formula engine, per-section attendance, class analytics, at-risk student flags, and bulk CSV import.",
+    icon: BookOpen,
+    link: "/teacher",
+    gradient: "var(--gradient-accent)",
+    items: ["Grade entry per subject", "Class attendance log", "At-risk student flags", "Bulk grade import"],
+  },
+  {
+    key: "student",
+    title: "Student / Parent",
+    subtitle: "Personal portal",
+    desc: "View real-time grades, attendance history, conduct log, Messenger notifications, and your personal learner ID card.",
+    icon: Users,
+    link: "/student",
+    gradient: "linear-gradient(135deg, oklch(0.65 0.18 30), oklch(0.78 0.16 80))",
+    items: ["Real-time grade viewing", "Attendance history", "Conduct log", "Learner ID card"],
+  },
 ];
 
-function SectionCard({ section, adviser }: { section: SectionT; adviser: string }) {
-  const enrolled = section.learners.length;
-  const attendance = enrolled
-    ? section.learners.reduce((a, l) => a + l.attendanceRate, 0) / enrolled
-    : 0;
-  const belowTarget = attendance < SF2_TARGET;
+const stats = [
+  { value: "300+", label: "Learners per campus" },
+  { value: "₱0.50", label: "Per SMS notification" },
+  { value: "CR-80", label: "PVC card-ready output" },
+  { value: "SF2", label: "DepEd compliant reports" },
+];
 
+function LandingPage() {
   return (
-    <div
-      className={`rounded-xl border p-4 transition-colors ${
-        belowTarget
-          ? "border-destructive/40 bg-destructive/5"
-          : "border-border/60 bg-card hover:border-primary/40"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">
-            {section.strand ? `${section.strand} — ${section.name}` : section.name}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">Adviser: {adviser}</p>
-        </div>
-        <Badge variant={belowTarget ? "destructive" : "secondary"} className="shrink-0">
-          {belowTarget ? "Below Target" : "On Target"}
-        </Badge>
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <p className="font-ui text-muted-foreground">Total Enrolled</p>
-          <p className="text-base font-semibold text-foreground">{enrolled}</p>
-        </div>
-        <div>
-          <p className="font-ui text-muted-foreground">Attendance Rate</p>
-          <p className={`text-base font-semibold ${belowTarget ? "text-destructive" : ""}`}>
-            {attendance.toFixed(1)}%
-          </p>
-        </div>
-      </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${Math.min(attendance, 100)}%`,
-            background: belowTarget
-              ? "var(--color-destructive)"
-              : "var(--gradient-primary)",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function Dashboard() {
-  const overallRate = totals.campusAttendance.toFixed(1);
-  const compliancePct = Math.round(
-    ((totals.sections - totals.below) / totals.sections) * 100,
-  );
-
-  const metrics = [
-    {
-      label: `Total Enrolled (SY ${SCHOOL_YEAR})`,
-      value: totals.enrolled.toString(),
-      hint: `${totals.sections} sections, 6 grade levels`,
-      icon: Users,
-      accent: "text-chart-3",
-    },
-    {
-      label: "Campus Attendance",
-      value: `${overallRate}%`,
-      hint: `SF2 target ${SF2_TARGET}%`,
-      icon: UserCheck,
-      accent: "text-chart-2",
-    },
-    {
-      label: "SF2 Compliance",
-      value: `${compliancePct}%`,
-      hint: `${totals.sections - totals.below} of ${totals.sections} sections on target`,
-      icon: ShieldCheck,
-      accent: "text-chart-1",
-    },
-    {
-      label: "Sections Below Target",
-      value: totals.below.toString(),
-      hint: `< ${SF2_TARGET}% SF2 attendance`,
-      icon: AlertTriangle,
-      accent: "text-destructive",
-    },
-  ];
-
-  return (
-    <>
-      <PageHeader
-        title="Principal's Portal"
-        subtitle={`Registrar's Overview · ${SCHOOL_NAME} · SY ${SCHOOL_YEAR}`}
-      />
-      <main className="space-y-6 p-4 sm:p-6">
-        {/* Hero */}
-        <section
-          className="relative overflow-hidden rounded-2xl p-6 text-primary-foreground shadow-[var(--shadow-elegant)]"
-          style={{ background: "var(--gradient-primary)" }}
-        >
-          <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -bottom-16 right-24 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="font-ui text-xs font-medium uppercase tracking-widest opacity-80">
-                Magandang umaga, Principal Reyes
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold sm:text-3xl">
-                {totals.enrolled} learners · {overallRate}% campus attendance
-              </h2>
-              <p className="mt-2 max-w-xl text-sm opacity-90">
-                {totals.below} section{totals.below === 1 ? "" : "s"} are tracking below the
-                DepEd SF2 {SF2_TARGET}% target. Review by department before the SF2 cutoff.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <div className="rounded-lg bg-white/15 px-3 py-2 text-center backdrop-blur">
-                <p className="font-ui text-[10px] uppercase tracking-wider opacity-80">Quarter</p>
-                <p className="text-sm font-semibold">3rd</p>
-              </div>
-              <div className="rounded-lg bg-white/15 px-3 py-2 text-center backdrop-blur">
-                <p className="font-ui text-[10px] uppercase tracking-wider opacity-80">School Week</p>
-                <p className="text-sm font-semibold">Week 6</p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-background">
+      {/* ── Sticky Header ── */}
+      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <img
+              src="/Screenshot_2026-05-10_102005-removebg-preview.png"
+              alt="EduCard Pro"
+              className="h-8 w-8 object-contain"
+            />
+            <img
+              src="/Screenshot_2026-05-10_100606-removebg-preview.png"
+              alt="EduCard Pro"
+              className="h-8 max-w-[120px] object-contain"
+            />
           </div>
-        </section>
+          <nav className="hidden items-center gap-1 md:flex">
+            <a href="#features" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">Features</a>
+            <a href="#portals" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">Portals</a>
+          </nav>
+          <div className="flex items-center gap-2">
+            <span className="hidden text-xs text-muted-foreground sm:block font-ui uppercase tracking-wider">Try demo:</span>
+            <Link
+              to="/principal"
+              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+            >
+              Principal
+            </Link>
+            <Link
+              to="/teacher"
+              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+            >
+              Teacher
+            </Link>
+            <Link
+              to="/student"
+              className="rounded-md px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              Student
+            </Link>
+          </div>
+        </div>
+      </header>
 
-        {/* Metrics */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {metrics.map((m) => (
-            <Card key={m.label} className="overflow-hidden border-border/60">
-              <CardContent className="flex items-start justify-between gap-3 p-5">
-                <div className="min-w-0">
-                  <p className="font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {m.label}
-                  </p>
-                  <p className="mt-1 text-2xl font-semibold">{m.value}</p>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">{m.hint}</p>
-                </div>
-                <div className={`rounded-xl bg-muted p-3 ${m.accent}`}>
-                  <m.icon className="h-5 w-5" />
-                </div>
-              </CardContent>
-            </Card>
+      {/* ── Hero ── */}
+      <section
+        className="relative overflow-hidden py-20 sm:py-28"
+        style={{ background: "var(--gradient-primary)" }}
+      >
+        <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute -bottom-24 right-0 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
+        <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 font-ui text-[11px] uppercase tracking-widest text-primary-foreground/90">
+            <Star className="h-3 w-3" /> Philippine K-12 School Management
+          </span>
+          <h1 className="mt-4 text-4xl font-bold text-primary-foreground sm:text-5xl lg:text-6xl">
+            One Platform for Every<br className="hidden sm:block" /> School Need
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base text-primary-foreground/80 sm:text-lg">
+            EduCard Pro consolidates grade management, barcode attendance tracking, student ID printing, and real-time parent notifications into a single, affordable system — DepEd-aligned and SF2-ready.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/principal"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-primary shadow-lg transition-opacity hover:opacity-90"
+            >
+              <School className="h-4 w-4" /> Enter as Principal
+            </Link>
+            <Link
+              to="/teacher"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-primary-foreground backdrop-blur transition-colors hover:bg-white/30"
+            >
+              <BookOpen className="h-4 w-4" /> Enter as Teacher
+            </Link>
+            <Link
+              to="/student"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-primary-foreground backdrop-blur transition-colors hover:bg-white/30"
+            >
+              <Users className="h-4 w-4" /> Enter as Student
+            </Link>
+          </div>
+          <p className="mt-4 text-xs text-primary-foreground/60">Prototype demo — no login required</p>
+        </div>
+      </section>
+
+      {/* ── Stats Bar ── */}
+      <section className="border-b bg-card">
+        <div className="mx-auto grid max-w-4xl grid-cols-2 divide-x divide-border lg:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="py-6 text-center">
+              <p className="text-2xl font-bold text-foreground">{s.value}</p>
+              <p className="mt-0.5 font-ui text-[11px] uppercase tracking-wider text-muted-foreground">{s.label}</p>
+            </div>
           ))}
-        </section>
+        </div>
+      </section>
 
-        {/* Departments */}
-        <section className="grid gap-6 lg:grid-cols-2">
-          {departments.map((dept) => {
-            const stats = dept.key === "JHS" ? jhs : shs;
-            return (
-              <Card key={dept.key} className="border-border/60">
-                <CardHeader className="flex flex-row items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="rounded-lg p-2 text-primary-foreground"
-                      style={{ background: "var(--gradient-primary)" }}
-                    >
-                      {dept.key === "JHS" ? (
-                        <BookOpen className="h-4 w-4" />
-                      ) : (
-                        <School className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">{dept.label}</CardTitle>
-                      <p className="text-xs text-muted-foreground">{dept.caption}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-semibold">{stats.rate.toFixed(1)}%</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {stats.enrolled} learners · {stats.below} below target
-                    </p>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {dept.grades.map((g) => (
-                    <div key={g.label} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="font-ui text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          {g.label}
-                        </p>
-                        <span className="text-[11px] text-muted-foreground">
-                          {g.sections.length} section{g.sections.length === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {g.sections.map((s) => (
-                          <SectionCard key={s.id} section={s} adviser={s.adviser} />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </section>
-
-        {/* Charts */}
-        <section className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Department Attendance vs SF2 Target</CardTitle>
-            </CardHeader>
-            <CardContent className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={departmentBars}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={12} />
-                  <YAxis domain={[80, 100]} stroke="var(--color-muted-foreground)" fontSize={12} unit="%" />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--color-background)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
-                  />
-                  <Bar dataKey="target" fill="var(--color-muted)" radius={[6, 6, 0, 0]} name="SF2 Target" />
-                  <Bar dataKey="attendance" fill="var(--color-chart-2)" radius={[6, 6, 0, 0]} name="Actual" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Campus Attendance — Last 7 Days</CardTitle>
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <TrendingUp className="h-3.5 w-3.5" /> Avg 91.7%
-              </span>
-            </CardHeader>
-            <CardContent className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={attendanceTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="day" stroke="var(--color-muted-foreground)" fontSize={12} />
-                  <YAxis domain={[80, 100]} stroke="var(--color-muted-foreground)" fontSize={12} unit="%" />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--color-background)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--color-chart-1)"
-                    strokeWidth={2.5}
-                    dot={{ r: 4, fill: "var(--color-chart-1)" }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Flagged + Alerts */}
-        <section className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base">Learners Needing Follow-up (SF2)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>LRN</TableHead>
-                      <TableHead>Learner</TableHead>
-                      <TableHead>Section</TableHead>
-                      <TableHead>Adviser</TableHead>
-                      <TableHead className="text-right">Attendance</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {flaggedLearners.map((l) => (
-                      <TableRow key={l.learner.lrn}>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {l.learner.lrn}
-                        </TableCell>
-                        <TableCell className="font-medium">{fullName(l.learner)}</TableCell>
-                        <TableCell className="text-muted-foreground">{l.sectionLabel}</TableCell>
-                        <TableCell className="text-muted-foreground">{l.section.adviser}</TableCell>
-                        <TableCell className="text-right font-semibold text-destructive">
-                          {l.learner.attendanceRate.toFixed(1)}%
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="destructive">Below SF2</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+      {/* ── Features ── */}
+      <section id="features" className="py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mb-10 text-center">
+            <h2 className="text-2xl font-bold sm:text-3xl">Everything a School Needs</h2>
+            <p className="mt-2 text-muted-foreground">Four pillars, one subscription — no extra software required.</p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {features.map((f) => (
+              <div key={f.title} className="rounded-2xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
+                <div className={`mb-4 inline-flex rounded-xl p-3 ${f.bg} ${f.color}`}>
+                  <f.icon className="h-5 w-5" />
+                </div>
+                <h3 className="font-semibold">{f.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
               </div>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Registrar Alerts</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {alerts.map((a, i) => (
-                <div key={i} className="flex items-start gap-3 rounded-lg border bg-card p-3">
-                  <div
-                    className={`rounded-md p-2 ${
-                      a.tone === "warn"
-                        ? "bg-destructive/10 text-destructive"
-                        : "bg-muted text-foreground"
-                    }`}
+      {/* ── Capabilities Pills ── */}
+      <section className="bg-muted/40 py-12">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
+          <div className="flex flex-wrap justify-center gap-3">
+            {pillars.map((p) => (
+              <div
+                key={p.text}
+                className="flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm font-medium"
+              >
+                <p.icon className="h-4 w-4 text-primary" />
+                {p.text}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Role Portals ── */}
+      <section id="portals" className="py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mb-10 text-center">
+            <h2 className="text-2xl font-bold sm:text-3xl">Choose Your Portal</h2>
+            <p className="mt-2 text-muted-foreground">Each role has a dedicated dashboard tailored to their needs.</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {roles.map((r) => (
+              <div
+                key={r.key}
+                className="group flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-shadow hover:shadow-[var(--shadow-elegant)]"
+              >
+                <div className="px-5 py-6 text-primary-foreground" style={{ background: r.gradient }}>
+                  <div className="mb-3 inline-flex rounded-xl bg-white/20 p-3">
+                    <r.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-bold">{r.title}</h3>
+                  <p className="text-sm opacity-80">{r.subtitle}</p>
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <p className="text-sm text-muted-foreground leading-relaxed">{r.desc}</p>
+                  <ul className="mt-4 space-y-2">
+                    {r.items.map((item) => (
+                      <li key={item} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-chart-2" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    to={r.link as "/principal" | "/teacher" | "/student"}
+                    className="mt-5 flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors group-hover:bg-muted"
                   >
-                    <a.icon className="h-4 w-4" />
-                  </div>
-                  <p className="text-sm leading-snug">{a.text}</p>
+                    Enter Portal <ChevronRight className="h-4 w-4" />
+                  </Link>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        </section>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-        {/* Sample ID */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Learner ID Preview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const sample = allLearners[0];
-              return (
-                <div className="mx-auto w-full max-w-sm overflow-hidden rounded-xl border bg-card shadow-sm">
-                  <div className="bg-primary px-4 py-3 text-primary-foreground">
-                    <p className="text-xs uppercase tracking-wide opacity-80">{SCHOOL_NAME}</p>
-                    <p className="text-sm font-semibold">Learner Identification Card</p>
-                  </div>
-                  <div className="flex gap-4 p-4">
-                    <div className="flex h-24 w-20 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                      <Users className="h-8 w-8" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-base font-semibold">{fullName(sample.learner)}</p>
-                      <p className="text-sm text-muted-foreground">{sample.sectionLabel}</p>
-                      <p className="mt-1 font-mono text-xs text-muted-foreground">
-                        LRN: {sample.learner.lrn}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        SY {SCHOOL_YEAR} · {sample.department.key}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between border-t bg-muted/40 px-4 py-3">
-                    <div className="text-xs text-muted-foreground">Scan LRN to verify</div>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-md border bg-background">
-                      <QrCode className="h-7 w-7" />
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
-
-        <footer className="flex items-center justify-center gap-2 pt-4 pb-2 text-center font-ui text-xs uppercase tracking-wider text-muted-foreground">
-          <GraduationCap className="h-3.5 w-3.5" />
-          EduCard Pro · Aligned with DepEd SF1, SF2 & LRN standards · Prototype data
-        </footer>
-      </main>
-    </>
+      {/* ── Footer ── */}
+      <footer className="border-t bg-card py-8">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex items-center gap-2">
+              <img
+                src="/Screenshot_2026-05-10_102005-removebg-preview.png"
+                alt="EduCard Pro"
+                className="h-6 w-6 object-contain"
+              />
+              <span className="font-ui text-xs uppercase tracking-widest text-muted-foreground">EduCard Pro</span>
+            </div>
+            <p className="font-ui text-[11px] uppercase tracking-wider text-muted-foreground">
+              Aligned with DepEd SF1, SF2 &amp; LRN standards · Prototype — All data is for demonstration only
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
