@@ -24,7 +24,7 @@ function IdCardsPage() {
       <PageHeader title="Learner ID Cards" subtitle="LRN-based identification · Preview & print" />
       <main className="space-y-6 p-4 sm:p-6">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">{ids.length} cards ready to print</p>
+          <p className="font-ui text-sm uppercase tracking-wider text-muted-foreground">{ids.length} cards ready to print</p>
           <Button size="sm" style={{ background: "var(--gradient-primary)" }}>
             <Printer className="h-4 w-4" /> Print batch
           </Button>

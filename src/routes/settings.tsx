@@ -56,7 +56,7 @@ function SettingsPage() {
               <div key={s.id} className="flex items-center justify-between gap-4">
                 <div>
                   <Label htmlFor={s.id} className="text-sm">{s.label}</Label>
-                  <p className="text-xs text-muted-foreground">{s.desc}</p>
+                  <p className="font-ui text-xs uppercase tracking-wider text-muted-foreground">{s.desc}</p>
                 </div>
                 <Switch id={s.id} defaultChecked />
               </div>

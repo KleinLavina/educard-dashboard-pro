@@ -117,11 +117,11 @@ function SectionCard({ section, adviser }: { section: SectionT; adviser: string 
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
         <div>
-          <p className="text-muted-foreground">Total Enrolled</p>
+          <p className="font-ui text-muted-foreground">Total Enrolled</p>
           <p className="text-base font-semibold text-foreground">{enrolled}</p>
         </div>
         <div>
-          <p className="text-muted-foreground">Attendance Rate</p>
+          <p className="font-ui text-muted-foreground">Attendance Rate</p>
           <p className={`text-base font-semibold ${belowTarget ? "text-destructive" : ""}`}>
             {attendance.toFixed(1)}%
           </p>
@@ -195,7 +195,7 @@ function Dashboard() {
           <div className="absolute -bottom-16 right-24 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-widest opacity-80">
+              <p className="font-ui text-xs font-medium uppercase tracking-widest opacity-80">
                 Magandang umaga, Principal Reyes
               </p>
               <h2 className="mt-1 text-2xl font-semibold sm:text-3xl">
@@ -208,11 +208,11 @@ function Dashboard() {
             </div>
             <div className="flex gap-2">
               <div className="rounded-lg bg-white/15 px-3 py-2 text-center backdrop-blur">
-                <p className="text-[10px] uppercase opacity-80">Quarter</p>
+                <p className="font-ui text-[10px] uppercase tracking-wider opacity-80">Quarter</p>
                 <p className="text-sm font-semibold">3rd</p>
               </div>
               <div className="rounded-lg bg-white/15 px-3 py-2 text-center backdrop-blur">
-                <p className="text-[10px] uppercase opacity-80">School Week</p>
+                <p className="font-ui text-[10px] uppercase tracking-wider opacity-80">School Week</p>
                 <p className="text-sm font-semibold">Week 6</p>
               </div>
             </div>
@@ -225,7 +225,7 @@ function Dashboard() {
             <Card key={m.label} className="overflow-hidden border-border/60">
               <CardContent className="flex items-start justify-between gap-3 p-5">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {m.label}
                   </p>
                   <p className="mt-1 text-2xl font-semibold">{m.value}</p>
@@ -273,7 +273,7 @@ function Dashboard() {
                   {dept.grades.map((g) => (
                     <div key={g.label} className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <p className="font-ui text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           {g.label}
                         </p>
                         <span className="text-[11px] text-muted-foreground">
@@ -461,7 +461,7 @@ function Dashboard() {
           </CardContent>
         </Card>
 
-        <footer className="flex items-center justify-center gap-2 pt-4 pb-2 text-center text-xs text-muted-foreground">
+        <footer className="flex items-center justify-center gap-2 pt-4 pb-2 text-center font-ui text-xs uppercase tracking-wider text-muted-foreground">
           <GraduationCap className="h-3.5 w-3.5" />
           EduCard Pro · Aligned with DepEd SF1, SF2 & LRN standards · Prototype data
         </footer>

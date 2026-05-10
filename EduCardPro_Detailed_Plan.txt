@@ -1,0 +1,780 @@
+EduCard Pro
+Detailed Development Plan
+For use with low-level AI code-generation tools
+St. Mary's Academy  ·  SY 2025–2026  ·  v1.0
+Phases
+Total tasks
+Done (Phase 1)
+Target launch
+8 phases
+~52 tasks
+11 tasks
+Q4 2026 (pilot)
+How to use this document
+Each phase is broken into task groups. Every task has three columns: the task name, the full acceptance criteria (what 'done' looks like), and the expected output file or artifact. Paste each task row directly into your AI code-generation tool as the prompt. Work top-to-bottom — tasks within a phase depend on the ones above them.
+Stack used throughout:
+Frontend: Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui, TanStack Router
+Backend: Laravel 11 (PHP 8.3), Sanctum auth, Tenancy for Laravel v3
+Database: PostgreSQL 16
+Storage: Cloudflare R2 (photos, print files)
+Notifications: Meta Cloud API (Messenger), Semaphore (SMS), Resend (email)
+PDF / Print: Puppeteer (headless Chrome) for ID cards and report cards
+Barcode scanning: QuaggaJS (webcam), USB HID keyboard emulation (plug-and-play)
+Hosting: DigitalOcean VPS (Ubuntu 24, Nginx, PHP-FPM)
+Error monitoring: Sentry (free tier)
+Phase 1 — Frontend shell and mock UI  [DONE]
+Status: Complete. All 7 routes exist. Mock data is centralised in school-data.ts. No backend calls yet.
+What was built
+Next.js project with TanStack Router, shadcn/ui component library, Tailwind CSS
+App sidebar with 7 routes: Dashboard, Students, Attendance, Grades, ID Cards, Alerts, Settings
+Centralised mock data file (src/lib/school-data.ts) — St. Mary's Academy, DepEd K-12 hierarchy (JHS Grades 7-10, SHS Grades 11-12), sections named after flowers / virtues, learners with 12-digit LRN, GPA, and attendance rate
+All 7 pages render mock data — no real API calls
+Remaining work from Phase 1
+None — move to Phase 2
+Phase 2 — Laravel backend, auth, and multi-tenancy  [START HERE]
+Timeline: Weeks 1-4 from today. This is the critical path. Everything else (attendance, grades, notifications, printing) sits on top of the backend built in this phase.
+2.1  Project scaffold
+Tasks
+Task
+Detail / acceptance criteria
+Output / file
+Create Laravel 11 project
+Run: composer create-project laravel/laravel educard-backend. PHP version must be 8.3+. Install packages: laravel/sanctum, stancl/tenancy, spatie/laravel-permission, spatie/laravel-activitylog, league/flysystem-aws-s3-v3 (for R2). Confirm all packages install without conflict.
+educard-backend/ folder, composer.json, .env.example
+Configure .env
+Set APP_NAME=EduCardPro, DB_CONNECTION=pgsql, DB_HOST, DB_PORT=5432, DB_DATABASE=educard, DB_USERNAME, DB_PASSWORD. Add SANCTUM_STATEFUL_DOMAINS. Add R2 bucket keys (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION=auto, AWS_BUCKET, AWS_URL, AWS_ENDPOINT). Add APP_URL=https://educardpro.com.
+.env (not committed), .env.example (committed)
+Install Tenancy for Laravel v3
+Follow stancl/tenancy v3 docs. Publish config: php artisan vendor:publish --tag=tenancy-config. Set tenancy.central_domains to ['educardpro.com']. Set database driver to database (separate DB per tenant). Run php artisan migrate (central migrations only).
+config/tenancy.php, central migrations
+Configure CORS and Sanctum
+In config/cors.php set allowed_origins to ['https://*.educardpro.com', 'http://localhost:3000']. In config/sanctum.php set stateful domains. Enable HasApiTokens on User model.
+config/cors.php, config/sanctum.php
+2.2  Database schema — central (non-tenant) tables
+These tables live in the central database (not per-school). They manage school registration and subscriptions.
+Table: tenants
+column
+type
+notes
+id
+uuid
+primary key
+name
+varchar(255)
+school display name, e.g. St. Mary's Academy
+subdomain
+varchar(100)
+unique, e.g. stmarys
+plan
+enum
+starter, basic, standard, premium, enterprise
+plan_expires_at
+timestamp
+nullable — null means active indefinitely (for testing)
+setup_fee_paid
+boolean
+default false
+created_at / updated_at
+timestamp
+auto
+Table: tenant_domains
+column
+type
+notes
+id
+bigint
+primary key
+tenant_id
+uuid
+FK tenants.id
+domain
+varchar(255)
+full domain e.g. stmarys.educardpro.com
+Note: Tenancy for Laravel auto-creates tenant databases. You do not manually create per-school DBs — the package handles it on tenant creation.
+2.3  Database schema — tenant (per-school) tables
+These tables are created inside each school's isolated database via tenant migrations (database/migrations/tenant/).
+Table: users
+column
+type
+notes
+id
+bigint
+primary key
+name
+varchar(255)
+email
+varchar(255)
+unique
+password
+varchar(255)
+hashed
+role
+enum
+school_admin, teacher, student, parent
+two_factor_secret
+varchar
+nullable — for TOTP 2FA
+two_factor_confirmed_at
+timestamp
+nullable
+remember_token
+varchar(100)
+created_at / updated_at
+timestamp
+auto
+Table: departments
+column
+type
+notes
+id
+bigint
+primary key
+key
+enum
+JHS, SHS
+label
+varchar(100)
+e.g. Junior High School
+caption
+varchar(100)
+e.g. Grades 7-10
+Table: grade_levels
+column
+type
+notes
+id
+bigint
+primary key
+department_id
+bigint
+FK departments.id
+level
+tinyint
+7, 8, 9, 10, 11, or 12
+label
+varchar(50)
+e.g. Grade 7
+Table: sections
+column
+type
+notes
+id
+bigint
+primary key
+grade_level_id
+bigint
+FK grade_levels.id
+name
+varchar(100)
+e.g. Sampaguita
+strand
+varchar(50)
+nullable — SHS only: STEM, ABM, HUMSS, GAS, TVL-ICT, TVL-HE
+adviser_id
+bigint
+FK users.id (teacher)
+Table: learners
+column
+type
+notes
+id
+bigint
+primary key
+lrn
+char(12)
+unique — DepEd Learner Reference Number
+first_name
+varchar(100)
+middle_initial
+char(1)
+nullable
+last_name
+varchar(100)
+birth_date
+date
+sex
+enum
+M, F
+photo_path
+varchar(500)
+nullable — R2 path
+barcode_value
+varchar(12)
+same as lrn
+barcode_active
+boolean
+default true — false for graduates
+section_id
+bigint
+FK sections.id — current section
+user_id
+bigint
+nullable FK users.id — student portal login
+parent_user_id
+bigint
+nullable FK users.id — parent portal login
+messenger_psid
+varchar(50)
+nullable — Facebook Page-Scoped ID for Messenger
+parent_phone
+varchar(20)
+nullable — for SMS fallback
+enrolled_at
+timestamp
+graduated_at
+timestamp
+nullable
+created_at / updated_at
+timestamp
+auto
+2.4  Role-based access control
+Tasks
+Task
+Detail / acceptance criteria
+Output / file
+Install spatie/laravel-permission
+Run: composer require spatie/laravel-permission. Publish and run migrations. Create roles via seeder: SuperAdmin, SchoolAdmin, Teacher, Student, Parent. Add HasRoles trait to User model.
+RoleSeeder.php, User model updated
+Define role permissions
+SuperAdmin: manage all tenants, billing, subscriptions. SchoolAdmin: manage own school — students, sections, teachers, grades, ID printing, settings. Teacher: input grades for assigned sections, view attendance. Student: view own grades and attendance. Parent: view child grades and attendance, send messages to teacher.
+PermissionSeeder.php
+Protect API routes with middleware
+All /api routes require auth:sanctum. Role checks use $request->user()->hasRole('SchoolAdmin'). Return 403 JSON {error: 'Forbidden'} on mismatch.
+routes/api.php middleware groups
+2.5  Authentication API endpoints
+Endpoints to create
+Task
+Detail / acceptance criteria
+Output / file
+POST /api/auth/login
+Accept email and password. Return Sanctum token on success. Return 422 with {errors: {email: ['...']} } on failure. Lock account after 5 failed attempts (use Laravel's built-in throttle).
+AuthController@login
+POST /api/auth/logout
+Revoke current Sanctum token. Return 204 no content.
+AuthController@logout
+GET /api/auth/me
+Return authenticated user: id, name, email, role. Require auth:sanctum.
+AuthController@me
+POST /api/auth/2fa/enable
+Generate TOTP secret (use pragmarx/google2fa package). Return QR code URI and secret. SchoolAdmin and Teacher roles only.
+TwoFactorController@enable
+POST /api/auth/2fa/verify
+Accept otp code. Confirm 2FA setup by setting two_factor_confirmed_at. Return 200 on success.
+TwoFactorController@verify
+POST /api/auth/2fa/challenge
+During login, if two_factor_confirmed_at is set, require OTP before issuing token. Return 401 with {two_factor: true} to signal frontend to show OTP screen.
+TwoFactorController@challenge
+2.6  Super Admin panel endpoints
+Task
+Detail / acceptance criteria
+Output / file
+POST /api/super/tenants
+Create a new school tenant. Body: {name, subdomain, plan}. Tenancy package creates isolated DB and runs tenant migrations. Return tenant record.
+SuperTenantController@store
+GET /api/super/tenants
+List all tenants with plan, plan_expires_at, student count. SuperAdmin only.
+SuperTenantController@index
+PATCH /api/super/tenants/{id}
+Update plan or plan_expires_at. SuperAdmin only.
+SuperTenantController@update
+DELETE /api/super/tenants/{id}
+Soft-delete tenant (do not drop DB). SuperAdmin only.
+SuperTenantController@destroy
+2.7  Students CRUD API
+Task
+Detail / acceptance criteria
+Output / file
+GET /api/students
+Return paginated list (25 per page). Support query params: section_id, grade_level_id, search (LRN or name). Return: id, lrn, full_name, section_label, gpa, attendance_rate, barcode_active.
+StudentController@index
+POST /api/students
+Create learner. Validate: lrn unique 12 digits, first_name, last_name, birth_date, sex, section_id exists. Auto-set barcode_value = lrn, barcode_active = true. Trigger ID generation job (queued). Return 201 with created learner.
+StudentController@store
+GET /api/students/{id}
+Return full learner record including section, grade level, department.
+StudentController@show
+PATCH /api/students/{id}
+Update any learner field except lrn. Log change in activity log.
+StudentController@update
+DELETE /api/students/{id}
+Soft-delete only — never hard delete. SchoolAdmin only.
+StudentController@destroy
+POST /api/students/{id}/photo
+Accept multipart/form-data with photo file. Validate: image, max 2MB, mime jpeg or png. Resize to 600x800px (use Intervention Image). Upload to R2. Store path in learners.photo_path. Return photo URL.
+StudentController@uploadPhoto
+2.8  Connect frontend to real API
+Task
+Detail / acceptance criteria
+Output / file
+Create API client in Next.js
+Create src/lib/api.ts. Export async functions: getStudents(params), getStudent(id), createStudent(data), updateStudent(id, data), uploadStudentPhoto(id, file). Use fetch with base URL from NEXT_PUBLIC_API_URL env var. Attach Bearer token from localStorage. Handle 401 by redirecting to /login.
+src/lib/api.ts
+Replace mock data on Students page
+In src/routes/students.tsx remove import from school-data.ts. Use useEffect + getStudents() to load real data. Show loading skeleton while fetching. Show error state on failure.
+src/routes/students.tsx updated
+Replace mock data on Dashboard page
+Replace hardcoded stats with API calls: GET /api/dashboard/summary (create this endpoint — return total students, today attendance rate, at-risk count). Show real numbers.
+src/routes/index.tsx updated
+Login page
+Create src/routes/login.tsx. Form: email + password fields. On submit POST /api/auth/login. Store token in localStorage. If response has two_factor: true, show OTP input step. On success redirect to /.
+src/routes/login.tsx
+Route guard
+In src/routes/__root.tsx check for token on load. If no token and route is not /login, redirect to /login. On 401 API response, clear token and redirect.
+__root.tsx updated
+Phase 3 — Attendance and barcode scanning
+Timeline: Weeks 5-7. Depends on Phase 2 (students API must exist).
+3.1  Attendance database tables
+Table: attendance_records
+column
+type
+notes
+id
+bigint
+primary key
+learner_id
+bigint
+FK learners.id
+date
+date
+school day
+time_in_morning
+time
+nullable
+time_out_morning
+time
+nullable
+time_in_afternoon
+time
+nullable
+time_out_afternoon
+time
+nullable
+status
+enum
+present, absent, late, excused
+created_at / updated_at
+timestamp
+auto
+Table: school_calendar
+column
+type
+notes
+id
+bigint
+primary key
+date
+date
+unique
+type
+enum
+school_day, holiday, suspension
+label
+varchar(200)
+nullable — e.g. Rizal Day
+3.2  Attendance API endpoints
+Task
+Detail / acceptance criteria
+Output / file
+POST /api/attendance/scan
+Accept: {barcode_value, session} where session is one of: time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon. Look up learner by barcode_value. If barcode_active = false return 403 {error: 'Inactive student'}. Find or create attendance_records row for learner_id + today. Set the correct time column to now(). Return learner full name and photo URL for on-screen confirmation. Dispatch NotifyParentJob to queue.
+AttendanceController@scan
+GET /api/attendance/today
+Return all learners in given section_id with today's attendance record. Support filter by section_id. Used for the live attendance monitor screen.
+AttendanceController@today
+GET /api/attendance/learner/{id}
+Return paginated attendance history for one learner. Support date range filter.
+AttendanceController@learnerHistory
+GET /api/attendance/summary
+Return monthly summary: total school days, average attendance rate per section. Used for SF2 report.
+AttendanceController@summary
+GET /api/attendance/absences/prolonged
+Return learners with 5+ or 10+ consecutive absent days. Used for alert dashboard.
+AttendanceController@prolongedAbsences
+3.3  Barcode scanner frontend
+Task
+Detail / acceptance criteria
+Output / file
+USB scanner intake page
+Create src/routes/attendance/scan.tsx. Render a full-screen input field that auto-focuses on mount. On input change, if value length = 12 and ends with Enter keypress (USB HID scanners send a carriage return), POST /api/attendance/scan with the value and current session. Show success card (student name + photo) for 2 seconds then clear. Show error toast on inactive or not found. No extra software needed — USB scanner acts as keyboard.
+src/routes/attendance/scan.tsx
+Session selector
+Above the scan field show 4 buttons: Morning In, Morning Out, Afternoon In, Afternoon Out. Highlight the active session. Default to the contextually correct one based on current time (before 10am = Morning In, etc.).
+scan.tsx — session picker
+Webcam scan page
+Create src/routes/attendance/webcam.tsx. Load QuaggaJS from CDN. Initialize camera stream in a <video> element. On barcode detected fire the same POST /api/attendance/scan call. Show same confirmation card.
+src/routes/attendance/webcam.tsx
+Live attendance monitor
+In src/routes/attendance.tsx replace mock data with GET /api/attendance/today?section_id=X. Poll every 30 seconds or use server-sent events. Show each learner row with colored status badge (green=present, red=absent, amber=late).
+src/routes/attendance.tsx updated
+Note: USB barcode scanners emulate a keyboard (HID). No drivers or serial port code needed. The scanner sends the barcode digits followed by a newline character. Capture this in a standard text input's onKeyDown event — when key === 'Enter' and input.length === 12, treat it as a scan.
+Phase 4 — Grades engine and report cards
+Timeline: Weeks 8-10. Depends on Phase 2 (students and sections must exist).
+4.1  Grades database tables
+Table: subjects
+column
+type
+notes
+id
+bigint
+primary key
+section_id
+bigint
+FK sections.id
+teacher_id
+bigint
+FK users.id
+name
+varchar(100)
+e.g. Mathematics 7
+quarter_weight_quiz
+decimal(5,2)
+e.g. 30.00 (percent)
+quarter_weight_exam
+decimal(5,2)
+e.g. 40.00
+quarter_weight_activity
+decimal(5,2)
+e.g. 30.00 — must sum to 100
+Table: grades
+column
+type
+notes
+id
+bigint
+primary key
+learner_id
+bigint
+FK learners.id
+subject_id
+bigint
+FK subjects.id
+quarter
+tinyint
+1, 2, 3, or 4
+quiz_score
+decimal(5,2)
+nullable
+exam_score
+decimal(5,2)
+nullable
+activity_score
+decimal(5,2)
+nullable
+computed_grade
+decimal(5,2)
+generated column: (quiz*w_quiz + exam*w_exam + activity*w_activity)/100
+created_at / updated_at
+timestamp
+auto
+Table: grade_audit_log
+column
+type
+notes
+id
+bigint
+primary key
+grade_id
+bigint
+FK grades.id
+changed_by
+bigint
+FK users.id
+field_changed
+varchar(50)
+quiz_score, exam_score, or activity_score
+old_value
+decimal(5,2)
+new_value
+decimal(5,2)
+changed_at
+timestamp
+4.2  Grades API endpoints
+Task
+Detail / acceptance criteria
+Output / file
+GET /api/grades?section_id=&subject_id=&quarter=
+Return all learners in the section with their grade row for the given subject and quarter. If no grade row exists yet return nulls. Teacher role sees only their assigned subjects.
+GradeController@index
+PUT /api/grades/{learner_id}/{subject_id}/{quarter}
+Upsert the grade row. Validate: quiz_score, exam_score, activity_score all between 0 and 100. Before saving, write current values to grade_audit_log. Recompute computed_grade. Return updated grade. Dispatch GradePostedNotificationJob.
+GradeController@upsert
+POST /api/grades/bulk-import
+Accept multipart CSV or Excel file. Expected columns: LRN, Quiz, Exam, Activity. Validate all rows first — return list of errors before saving anything. On success upsert all rows. Return {imported: N, errors: []}.
+GradeController@bulkImport
+GET /api/grades/at-risk?section_id=
+Return learners whose computed_grade average across subjects is below 75 for any quarter. Teacher and SchoolAdmin roles.
+GradeController@atRisk
+GET /api/grades/report-card/{learner_id}
+Return all subjects + all 4 quarters for the learner. Include computed final grade (average of 4 quarters) per subject. Used by report card generator.
+GradeController@reportCard
+4.3  PDF report card generation
+Task
+Detail / acceptance criteria
+Output / file
+Install Puppeteer on backend
+composer require spatie/browsershot (wraps Puppeteer). Install Node.js and Puppeteer on the server: npm install puppeteer. Confirm Browsershot::html('<h1>Test</h1>')->pdf() works.
+Server setup, composer.json updated
+Report card HTML template
+Create resources/views/report-card.blade.php. Layout: school name and logo at top, student name and LRN, academic year, table of subjects with Q1-Q4 grades and final grade, attendance summary row, remarks row. Style with inline CSS only (Puppeteer does not load external CSS reliably).
+resources/views/report-card.blade.php
+GET /api/report-cards/{learner_id}/pdf
+Call GradeController@reportCard to get data. Render report-card.blade.php with data. Use Browsershot to convert to PDF. Return PDF as file download with filename: {LRN}_report_card_SY2025-2026.pdf. Cache generated PDF in R2 for 24 hours.
+ReportCardController@download
+Bulk report cards
+POST /api/report-cards/bulk?section_id= — queue a job to generate PDF for every learner in the section, zip them, upload zip to R2, email download link to SchoolAdmin. Return 202 Accepted immediately.
+ReportCardController@bulk, GenerateReportCardsJob
+Phase 5 — Student ID generation and PVC printing
+Timeline: Weeks 11-12. Depends on Phase 2 (learners must exist with photos).
+5.1  ID card database tables
+Table: id_templates
+column
+type
+notes
+id
+bigint
+primary key
+name
+varchar(100)
+e.g. SY 2025-2026 Template
+background_path
+varchar(500)
+R2 path to background image
+font_color
+varchar(7)
+hex e.g. #FFFFFF
+is_active
+boolean
+only one template active at a time
+created_at
+timestamp
+Table: id_print_queue
+column
+type
+notes
+id
+bigint
+primary key
+learner_id
+bigint
+FK learners.id
+template_id
+bigint
+FK id_templates.id
+reason
+enum
+new_enrollment, lost, damaged, renewal
+status
+enum
+pending, generated, printed
+pdf_path
+varchar(500)
+nullable — R2 path once generated
+requested_by
+bigint
+FK users.id
+requested_at
+timestamp
+printed_at
+timestamp
+nullable
+5.2  ID card API and generation
+Task
+Detail / acceptance criteria
+Output / file
+ID card HTML template
+Create resources/views/id-card.blade.php. Dimensions must render at exactly 1012x638px (CR-80 at 300 DPI: 3.375in x 2.125in). Elements: background image (full bleed), school logo (top center, fixed position), student photo (fixed position, 200x260px), student full name (fixed position, font-color from template), LRN text, section label, barcode (Code 128, generated server-side using picqer/php-barcode-generator). QR code (optional — use SimpleSoftwareIO/simple-qrcode). Do NOT let positions move when background changes.
+resources/views/id-card.blade.php
+POST /api/id-cards/generate/{learner_id}
+Find learner, get active template, render id-card.blade.php with data, use Browsershot to generate PDF at 300 DPI (->setOption('width', 1012)->setOption('height', 638)). Upload PDF to R2 at path: id-cards/{tenant_id}/{learner_id}/{timestamp}.pdf. Create id_print_queue row with status=generated. Return PDF URL.
+IdCardController@generate
+GET /api/id-cards/queue
+Return all pending and generated items in print queue. Support filter by status. SchoolAdmin only.
+IdCardController@queue
+PATCH /api/id-cards/queue/{id}/mark-printed
+Set status=printed and printed_at=now(). Return updated row.
+IdCardController@markPrinted
+POST /api/id-cards/reprint/{learner_id}
+Accept body: {reason: 'lost'|'damaged'|'renewal'}. Create new id_print_queue row. Regenerate PDF. Return new queue item.
+IdCardController@reprint
+Auto-queue on enrollment
+In StudentController@store, after creating the learner, dispatch GenerateIdCardJob to the queue. The job calls IdCardController@generate logic. Do not block the HTTP response.
+GenerateIdCardJob
+5.3  ID template editor frontend
+Task
+Detail / acceptance criteria
+Output / file
+Template upload page
+Create src/routes/id-cards/template.tsx. Form: upload background image (jpeg/png, max 5MB), font color picker, template name. On submit POST /api/id-templates. Show preview of the template with dummy student data overlaid at the fixed positions.
+src/routes/id-cards/template.tsx
+Print queue page
+In src/routes/id-cards.tsx show queue table: learner name, reason, status, requested date, actions (Download PDF, Mark Printed). Filter tabs: All / Pending / Printed.
+src/routes/id-cards.tsx updated
+Phase 6 — Parent notifications (Messenger and SMS)
+Timeline: Weeks 13-14. Depends on Phase 3 (attendance scans must fire events).
+6.1  Messenger (Meta Cloud API) setup
+Task
+Detail / acceptance criteria
+Output / file
+Create Meta App
+Go to developers.facebook.com. Create a new app of type Business. Add the Messenger product. Create a Facebook Page for EduCard Pro. Generate a permanent page access token. Add MESSENGER_PAGE_ACCESS_TOKEN and MESSENGER_VERIFY_TOKEN to .env.
+.env updated
+Webhook endpoint POST /api/webhooks/messenger
+Verify the webhook with GET request using MESSENGER_VERIFY_TOKEN. This is required by Meta before messages can be sent.
+WebhookController@verify
+Parent opt-in flow
+On learner enrollment form, add a field: Parent Facebook Messenger opt-in link. The SchoolAdmin gives the parent a URL: https://m.me/{page_id}?ref=optin_{learner_lrn}. When parent clicks it and sends any message, the webhook receives their PSID. Save PSID to learners.messenger_psid.
+WebhookController@receive, learners table updated
+Send Messenger message service
+Create App\Services\MessengerService. Method: send(string $psid, string $message). POST to https://graph.facebook.com/v19.0/me/messages with recipient.id=$psid and message.text=$message and access_token from .env. Handle rate limits and log failures.
+app/Services/MessengerService.php
+6.2  SMS (Semaphore) setup
+Task
+Detail / acceptance criteria
+Output / file
+Semaphore integration
+Create App\Services\SmsService. Method: send(string $phone, string $message). POST to https://api.semaphore.co/api/v4/messages with apikey, number, message, sendername. Add SEMAPHORE_API_KEY to .env. Cost: PHP 0.50 per SMS — log every send to sms_log table.
+app/Services/SmsService.php
+Table: sms_log
+Columns: id, learner_id, phone, message, status (sent/failed), cost, created_at. Used by Super Admin to track usage and bill schools.
+migration: create_sms_log_table
+6.3  Notification jobs
+Task
+Detail / acceptance criteria
+Output / file
+NotifyParentScanJob
+Triggered by attendance scan. Message template: 'Hi! {learner_first_name} has {session_label} at {school_name} at {time}.' If learner.messenger_psid is set use MessengerService. Else if learner.parent_phone is set use SmsService. Dispatch on queue:notifications worker.
+app/Jobs/NotifyParentScanJob.php
+NotifyParentGradeJob
+Triggered when teacher saves grades. Message: '{learner_first_name}'s Q{quarter} grades for {subject_name} are now available. Log in to view them.' Send via Messenger first, SMS fallback.
+app/Jobs/NotifyParentGradeJob.php
+NotifyParentAbsenceJob
+Scheduled command runs daily (php artisan schedule:run via cron). Checks attendance_records for learners with 5 consecutive absent school_days. Sends: 'This is to inform you that {name} has been absent for 5 consecutive school days.' Re-fires at 10 days with updated message. Do not resend if already sent for this streak.
+app/Jobs/NotifyParentAbsenceJob.php, app/Console/Commands/CheckAbsences.php
+Messenger cost tracker
+After each MessengerService::send() call, check if a Messenger conversation was opened in the last 24 hours for this PSID. If yes: no charge. If no: increment messenger_conversations_count in tenant settings. Expose GET /api/super/tenants/{id}/messenger-usage for Super Admin billing view.
+MessengerService updated, tenant_settings table
+6.4  Alerts frontend
+Task
+Detail / acceptance criteria
+Output / file
+Replace mock alerts page
+In src/routes/alerts.tsx load real data from GET /api/attendance/absences/prolonged. Show each at-risk learner with days-absent count and last-seen date. Add 'Send manual alert' button that calls POST /api/notifications/manual/{learner_id}.
+src/routes/alerts.tsx updated
+Phase 7 — Graduation, alumni archive, and student portal
+Timeline: Weeks 15-18.
+7.1  Graduation system
+Task
+Detail / acceptance criteria
+Output / file
+Auto-detect graduating students
+Scheduled command runs at school year end. Finds all learners in grade_level.level = 10 (JHS) or 12 (SHS) who have no failing final grade. Marks them as graduation_candidate in a new column learners.graduation_status enum: active, candidate, confirmed, archived.
+app/Console/Commands/DetectGraduates.php
+Admin graduation confirmation
+GET /api/graduation/candidates — list all candidates with grades summary. POST /api/graduation/confirm/{learner_id} — set graduation_status=confirmed, graduated_at=now(), barcode_active=false, dispatch GraduationNotificationJob.
+GraduationController
+Graduate archive
+Confirmed graduates stay in the learners table but with graduation_status=archived. GET /api/graduates — searchable archive. SchoolAdmin can still GET /api/grades/report-card/{id} and download transcript PDF.
+GraduationController@archive
+GraduationNotificationJob
+Send final message via Messenger/SMS: 'Congratulations to {name}, a proud graduate of {school_name}, Class of {year}! Thank you for being part of our school family.' Remove parent from active notification list by clearing messenger_psid after send.
+app/Jobs/GraduationNotificationJob.php
+7.2  Student and parent portal
+Task
+Detail / acceptance criteria
+Output / file
+Student portal login
+Students and parents log in at the same /login page. Their user.role determines what they see. Student role: sees own grades and attendance only. Parent role: sees child's grades and attendance (linked via learners.parent_user_id).
+Existing login page, role-based redirects
+GET /api/portal/my-grades
+Auth: student role. Return all subjects + all quarters for the authenticated learner.
+PortalController@myGrades
+GET /api/portal/my-attendance
+Auth: student role. Return attendance history with date, time_in, time_out, status. Paginated.
+PortalController@myAttendance
+GET /api/portal/child-grades and child-attendance
+Auth: parent role. Same as above but for the child linked via learners.parent_user_id.
+PortalController@childGrades, childAttendance
+In-system messaging
+Table: messages (id, sender_id FK users, receiver_id FK users, subject, body, read_at, created_at). POST /api/messages — parent sends to teacher. GET /api/messages — inbox. PATCH /api/messages/{id}/read — mark read. Teacher gets notification badge in sidebar.
+MessagingController, messages table
+Student/parent portal pages
+Create src/routes/portal/grades.tsx and src/routes/portal/attendance.tsx. Fetch from portal API endpoints. Simple read-only tables. Show school branding (logo from tenant settings).
+src/routes/portal/
+Phase 8 — Hardening, billing, and first school pilot
+Timeline: Weeks 19-24. Target: onboard first pilot school before SY 2026-2027 enrollment (June 2026).
+8.1  School configuration
+Task
+Detail / acceptance criteria
+Output / file
+Table: tenant_settings
+Columns: tenant_id, school_logo_path, primary_color (hex), school_year (varchar), grading_period_1_start ... grading_period_4_end (dates), sms_credits_remaining (integer), messenger_conversations_used (integer), plan (enum — cached from central DB).
+migration: create_tenant_settings_table
+GET/PATCH /api/settings
+Return and update tenant settings. SchoolAdmin only. On logo upload, store to R2 and update school_logo_path.
+SettingsController
+School calendar management
+GET/POST/DELETE /api/calendar — SchoolAdmin manages school_calendar table (add holidays, suspensions). Attendance scan rejects scans on non-school_day dates with message 'No school today'.
+CalendarController
+Replace mock Settings page
+In src/routes/settings.tsx load real tenant settings. Show form: school name, logo upload, primary color, school year, grading period dates. Save via PATCH /api/settings.
+src/routes/settings.tsx updated
+8.2  Billing module
+Task
+Detail / acceptance criteria
+Output / file
+Subscription tiers enforcement
+On every API request middleware checks tenant plan_expires_at. If expired return 402 {error: 'Subscription expired. Please contact EduCard Pro.'} On API endpoints that create students, check learner count against plan limit (Starter=300, Basic=800, Standard=2000, Premium=5000).
+CheckSubscriptionMiddleware.php
+SMS prepaid bundle
+POST /api/super/tenants/{id}/add-sms-credits — Super Admin adds credits (1000 or 2200). Deduct 1 credit per SMS sent. Return 402 if credits exhausted, notify SchoolAdmin by email.
+SuperTenantController@addSmsCredits
+Revenue dashboard for Super Admin
+GET /api/super/dashboard — return: total active tenants, total students across all tenants, monthly Messenger conversation count and cost estimate, SMS credits sold this month. Show in Super Admin panel.
+SuperDashboardController
+8.3  Security hardening
+Task
+Detail / acceptance criteria
+Output / file
+Data encryption at rest
+Enable PostgreSQL's pgcrypto extension. Encrypt sensitive columns in learners table: messenger_psid, parent_phone. Use Laravel's built-in Crypt facade with Encrypted cast on these model attributes.
+Learner model, pgcrypto migration
+Audit log review page
+GET /api/audit-log — return spatie/laravel-activitylog records. Support filter by causer (user), subject (model), date range. SchoolAdmin sees own school only. Super Admin sees all.
+AuditLogController
+Rate limiting
+Apply Laravel's throttle middleware: 60 requests/minute for regular users, 10/minute for POST /api/attendance/scan (scanner bots could flood this). Apply stricter 5/minute limit on POST /api/auth/login.
+routes/api.php throttle config
+HTTPS and SSL
+On DigitalOcean server: configure Nginx virtual host for *.educardpro.com. Use Let's Encrypt wildcard certificate via Certbot with DNS challenge. Auto-renew via cron.
+Nginx config, certbot setup
+8.4  Deployment
+Task
+Detail / acceptance criteria
+Output / file
+DigitalOcean VPS setup
+Ubuntu 24 LTS. Install: Nginx, PHP 8.3-FPM, PostgreSQL 16, Node.js 20, Redis (queue driver), Supervisor (queue worker). Configure PHP-FPM pool. Set up /etc/supervisor/conf.d/educard-worker.conf to run php artisan queue:work --queue=default,notifications with autorestart=true.
+Server provisioning script
+Laravel deployment script
+Create deploy.sh: git pull, composer install --no-dev, php artisan migrate --force, php artisan config:cache, php artisan route:cache, php artisan view:cache, sudo systemctl reload php8.3-fpm, sudo supervisorctl restart educard-worker. Run on every deploy.
+deploy.sh
+Next.js build and deploy
+On same server or separate VPS: npm run build, serve with Node.js process manager (PM2). Configure Nginx reverse proxy: requests to educardpro.com and *.educardpro.com/* (non-API) go to Next.js on port 3000. Requests to /api/* proxy to Laravel on port 8000.
+Nginx config, PM2 config
+Sentry integration
+Backend: composer require sentry/sentry-laravel, add DSN to .env, publish config. Frontend: npm install @sentry/nextjs, add sentry.client.config.ts and sentry.server.config.ts. Set SENTRY_DSN in environment. Verify errors appear in Sentry dashboard.
+Sentry dashboards for both
+8.5  Pilot school checklist
+Before going live with the first school, verify all of the following:
+Admin can log in with 2FA, create sections, and enroll students
+Student photos upload successfully to R2 and appear on ID cards
+ID card PDF generates at correct CR-80 dimensions (verify by printing one test card)
+USB barcode scanner scan fires attendance record and sends Messenger notification to a test parent account
+Teacher can input grades, bulk import via CSV, and the at-risk flag appears correctly
+Report card PDF generates with correct grades and downloads successfully
+Parent portal login shows correct child grades and attendance
+Graduation flow works end-to-end on a test student (confirm, archive, barcode deactivated, notification sent)
+Super Admin can create a second test tenant (school), log in to it, and confirm data is fully isolated from the first school
+SMS fallback tested with a real Philippine mobile number via Semaphore
+Sentry captures a test error from both frontend and backend
+SSL wildcard certificate covers both educardpro.com and *.educardpro.com
+End of plan. Good luck with the build.

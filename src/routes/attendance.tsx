@@ -96,7 +96,7 @@ function AttendancePage() {
                         <p className="truncate font-medium">
                           Daily Attendance for {es.label}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">
+                        <p className="truncate font-ui text-xs uppercase tracking-wider text-muted-foreground">
                           Adviser {es.section.adviser} · {es.enrolled} learners
                         </p>
                       </div>

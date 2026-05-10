@@ -26,7 +26,7 @@ export function PageHeader({
             className="h-9 w-64 pl-8"
           />
         </div>
-        <div className="hidden items-center gap-2 rounded-md border bg-card px-3 py-1.5 text-xs text-muted-foreground sm:flex">
+        <div className="hidden items-center gap-2 rounded-md border bg-card px-3 py-1.5 font-ui text-xs uppercase tracking-wider text-muted-foreground sm:flex">
           <Calendar className="h-3.5 w-3.5" />
           May 9, 2026
         </div>

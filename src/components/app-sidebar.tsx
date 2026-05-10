@@ -66,7 +66,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-ui uppercase tracking-widest">Main</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
@@ -84,7 +84,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-ui uppercase tracking-widest">Tools</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {toolItems.map((item) => (
@@ -104,7 +104,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border/40">
         {!collapsed && (
-          <div className="px-2 py-2 text-[11px] text-sidebar-foreground/60">
+          <div className="px-2 py-2 font-ui text-[11px] uppercase tracking-widest text-sidebar-foreground/60">
             SY 2025–2026 · v1.0
           </div>
         )}
