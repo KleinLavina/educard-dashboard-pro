@@ -22,10 +22,138 @@ function StudentsPage() {
   const { role } = useRole();
   if (role === "student") return <StudentProfile />;
   if (role === "teacher") return <TeacherRoster />;
-  return <PrincipalRoster />;
+  return <AdminRoster />; // Admin sees full roster with enrollment management
 }
 
-/* ─── Principal: full roster ─────────────────────────────── */
+/* ─── Admin: full roster with enrollment management ──────── */
+function AdminRoster() {
+  const [search, setSearch] = useState("");
+  const [dept, setDept] = useState<DeptFilter>("all");
+
+  const filtered = allLearners.filter((l) => {
+    const matchDept = dept === "all" || l.department.key === dept;
+    const q = search.toLowerCase();
+    const matchSearch =
+      !q ||
+      fullName(l.learner).toLowerCase().includes(q) ||
+      l.learner.lrn.includes(q) ||
+      l.sectionLabel.toLowerCase().includes(q);
+    return matchDept && matchSearch;
+  });
+
+  const atRisk = allLearners.filter((l) => l.status === "At Risk").length;
+
+  return (
+    <>
+      <PageHeader title="Students" subtitle={`Enrollment & Records · ${SCHOOL_NAME} · SY ${SCHOOL_YEAR}`} />
+      <main className="space-y-6 p-4 sm:p-6">
+        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            { label: "Total Enrolled", value: allLearners.length, icon: Users, accent: "text-chart-3" },
+            { label: "On Track", value: allLearners.length - atRisk, icon: CheckCircle2, accent: "text-chart-2" },
+            { label: "At Risk", value: atRisk, icon: AlertTriangle, accent: "text-destructive" },
+            { label: "Sections", value: allSections.length, icon: School, accent: "text-chart-1" },
+          ].map((m) => (
+            <Card key={m.label} className="border-border/60">
+              <CardContent className="flex items-start justify-between gap-3 p-5">
+                <div>
+                  <p className="font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">{m.label}</p>
+                  <p className="mt-1 text-2xl font-semibold">{m.value}</p>
+                </div>
+                <div className={`rounded-xl bg-muted p-3 ${m.accent}`}>
+                  <m.icon className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+
+        <Card>
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-base">Student Records</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">SF1 Enrollment & LRN Management</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {(["all", "JHS", "SHS"] as DeptFilter[]).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDept(d)}
+                  className={`rounded-full px-3 py-1 font-ui text-xs uppercase tracking-wider transition-colors ${
+                    dept === d ? "bg-primary text-primary-foreground" : "border bg-card text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {d === "all" ? "All Depts" : d}
+                </button>
+              ))}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Name or LRN…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-8 w-44 pl-8 text-sm"
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>LRN</TableHead>
+                    <TableHead>Learner</TableHead>
+                    <TableHead>Section</TableHead>
+                    <TableHead>Dept</TableHead>
+                    <TableHead className="text-right">GPA</TableHead>
+                    <TableHead className="text-right">Attendance</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((l) => (
+                    <TableRow key={l.learner.lrn} className="hover:bg-muted/40">
+                      <TableCell className="font-mono text-xs text-muted-foreground">{l.learner.lrn}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{fullName(l.learner)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{l.sectionLabel}</TableCell>
+                      <TableCell>
+                        <span className={`rounded-full px-2 py-0.5 font-ui text-[10px] uppercase tracking-wider ${
+                          l.department.key === "JHS" ? "bg-primary/10 text-primary" : "bg-chart-1/10 text-chart-1"
+                        }`}>
+                          {l.department.key}
+                        </span>
+                      </TableCell>
+                      <TableCell className={`text-right font-semibold ${l.learner.gpa < 75 ? "text-destructive" : ""}`}>
+                        {l.learner.gpa}
+                      </TableCell>
+                      <TableCell className={`text-right font-semibold ${l.learner.attendanceRate < SF2_TARGET ? "text-destructive" : ""}`}>
+                        {l.learner.attendanceRate.toFixed(1)}%
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={l.status === "At Risk" ? "destructive" : "secondary"}>{l.status}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filtered.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
+                        No learners match your search.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">{filtered.length} of {allLearners.length} learners shown</p>
+          </CardContent>
+        </Card>
+      </main>
+    </>
+  );
+}
+
+/* ─── Principal: full roster (legacy - now using AdminRoster) ─────────────────────────────── */
 function PrincipalRoster() {
   const [search, setSearch] = useState("");
   const [dept, setDept] = useState<DeptFilter>("all");

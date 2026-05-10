@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Smartphone,
   Printer,
+  FileEdit,
 } from "lucide-react";
 import { useRole, type Role } from "@/lib/role-context";
 
@@ -82,13 +83,13 @@ const roles: {
   items: string[];
 }[] = [
   {
-    key: "principal",
-    title: "Principal / Registrar",
-    subtitle: "School-wide overview",
-    desc: "SF2 compliance dashboard, department analytics, flagged learners, section summaries, and registrar alerts — all in one view.",
+    key: "admin",
+    title: "Admin",
+    subtitle: "Principal / Registrar",
+    desc: "Complete school management: campus analytics, SF2 compliance, enrollment, student records, LRN management, and ID card operations.",
     icon: School,
     gradient: "var(--gradient-primary)",
-    items: ["Campus attendance overview", "SF2 compliance tracking", "Section & department stats", "Learner ID preview"],
+    items: ["Campus-wide analytics", "Enrollment & SF1 records", "ID card management", "SF2 compliance tracking"],
   },
   {
     key: "teacher",
@@ -100,11 +101,20 @@ const roles: {
     items: ["Grade entry per subject", "Class attendance log", "At-risk student flags", "Bulk grade import"],
   },
   {
+    key: "parent",
+    title: "Parent",
+    subtitle: "Family portal",
+    desc: "Monitor your children's progress: real-time attendance alerts, grade notifications, conduct records, teacher messaging, and notification settings.",
+    icon: Users,
+    gradient: "linear-gradient(135deg, oklch(0.60 0.15 150), oklch(0.75 0.12 170))",
+    items: ["Children overview", "Real-time attendance alerts", "Grade notifications", "Teacher chat"],
+  },
+  {
     key: "student",
-    title: "Student / Parent",
+    title: "Student",
     subtitle: "Personal portal",
     desc: "View real-time grades, attendance history, conduct log, Messenger notifications, and your personal learner ID card.",
-    icon: Users,
+    icon: GraduationCap,
     gradient: "linear-gradient(135deg, oklch(0.65 0.18 30), oklch(0.78 0.16 80))",
     items: ["Real-time grade viewing", "Attendance history", "Conduct log", "Learner ID card"],
   },
@@ -150,16 +160,22 @@ function LandingPage() {
           <div className="flex items-center gap-2">
             <span className="hidden text-xs text-muted-foreground sm:block font-ui uppercase tracking-wider">Try demo:</span>
             <button
-              onClick={() => enterAs("principal")}
+              onClick={() => enterAs("admin")}
               className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
             >
-              Principal
+              Admin
             </button>
             <button
               onClick={() => enterAs("teacher")}
               className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
             >
               Teacher
+            </button>
+            <button
+              onClick={() => enterAs("parent")}
+              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+            >
+              Parent
             </button>
             <button
               onClick={() => enterAs("student")}
@@ -191,10 +207,10 @@ function LandingPage() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <button
-              onClick={() => enterAs("principal")}
+              onClick={() => enterAs("admin")}
               className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-primary shadow-lg transition-opacity hover:opacity-90"
             >
-              <School className="h-4 w-4" /> Enter as Principal
+              <School className="h-4 w-4" /> Enter as Admin
             </button>
             <button
               onClick={() => enterAs("teacher")}
@@ -203,10 +219,16 @@ function LandingPage() {
               <BookOpen className="h-4 w-4" /> Enter as Teacher
             </button>
             <button
+              onClick={() => enterAs("parent")}
+              className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-primary-foreground backdrop-blur transition-colors hover:bg-white/30"
+            >
+              <Users className="h-4 w-4" /> Enter as Parent
+            </button>
+            <button
               onClick={() => enterAs("student")}
               className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-primary-foreground backdrop-blur transition-colors hover:bg-white/30"
             >
-              <Users className="h-4 w-4" /> Enter as Student
+              <GraduationCap className="h-4 w-4" /> Enter as Student
             </button>
           </div>
           <p className="mt-4 text-xs text-primary-foreground/60">Prototype demo — no login required</p>

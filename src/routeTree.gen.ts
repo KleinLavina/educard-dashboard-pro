@@ -17,6 +17,7 @@ import { Route as PrincipalRouteImport } from './routes/principal'
 import { Route as IdCardsRouteImport } from './routes/id-cards'
 import { Route as GradesRouteImport } from './routes/grades'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
@@ -61,6 +62,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactsRoute = ContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AttendanceRoute = AttendanceRouteImport.update({
   id: '/attendance',
   path: '/attendance',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/attendance': typeof AttendanceRoute
+  '/contacts': typeof ContactsRoute
   '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/attendance': typeof AttendanceRoute
+  '/contacts': typeof ContactsRoute
   '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/attendance': typeof AttendanceRoute
+  '/contacts': typeof ContactsRoute
   '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/attendance'
+    | '/contacts'
     | '/dashboard'
     | '/grades'
     | '/id-cards'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/attendance'
+    | '/contacts'
     | '/dashboard'
     | '/grades'
     | '/id-cards'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/attendance'
+    | '/contacts'
     | '/dashboard'
     | '/grades'
     | '/id-cards'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlertsRoute: typeof AlertsRoute
   AttendanceRoute: typeof AttendanceRoute
+  ContactsRoute: typeof ContactsRoute
   DashboardRoute: typeof DashboardRoute
   GradesRoute: typeof GradesRoute
   IdCardsRoute: typeof IdCardsRoute
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contacts': {
+      id: '/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof ContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/attendance': {
       id: '/attendance'
       path: '/attendance'
@@ -259,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlertsRoute: AlertsRoute,
   AttendanceRoute: AttendanceRoute,
+  ContactsRoute: ContactsRoute,
   DashboardRoute: DashboardRoute,
   GradesRoute: GradesRoute,
   IdCardsRoute: IdCardsRoute,

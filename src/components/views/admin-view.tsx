@@ -9,6 +9,14 @@ import {
   BookOpen,
   ShieldCheck,
   GraduationCap,
+  IdCard,
+  Printer,
+  FileEdit,
+  CheckCircle2,
+  Clock,
+  Upload,
+  Download,
+  CalendarCheck,
 } from "lucide-react";
 import {
   LineChart,
@@ -23,6 +31,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -62,10 +71,33 @@ const departmentBars = [
   { name: "SHS", attendance: Number(shs.rate.toFixed(1)), target: SF2_TARGET },
 ];
 
+const enrollmentByGrade = [
+  { grade: "G7", count: 6 },
+  { grade: "G8", count: 4 },
+  { grade: "G9", count: 4 },
+  { grade: "G10", count: 4 },
+  { grade: "G11", count: 4 },
+  { grade: "G12", count: 4 },
+];
+
 const flaggedLearners = allLearners
   .filter((l) => l.learner.attendanceRate < SF2_TARGET)
   .sort((a, b) => a.learner.attendanceRate - b.learner.attendanceRate)
   .slice(0, 6);
+
+const pendingTasks = [
+  { task: "Process 5 new enrollment applications", priority: "High", dueDate: "May 12" },
+  { task: "Review 3 LRN reprint requests", priority: "Medium", dueDate: "May 13" },
+  { task: "Generate SF1 reports for Division Office", priority: "High", dueDate: "May 14" },
+  { task: "Update student photos for Grade 9 - Bonifacio", priority: "Low", dueDate: "May 15" },
+];
+
+const recentActivity = [
+  { icon: IdCard, text: "ID card printed for Juan M. Dela Cruz (LRN 136728140987)", time: "15 min ago", tone: "ok" },
+  { icon: Printer, text: "2 ID reprint requests approved for Grade 8 - Adelfa", time: "1h ago", tone: "info" },
+  { icon: FileEdit, text: "LRN correction submitted to DepEd for Maria L. Santos", time: "2h ago", tone: "info" },
+  { icon: Upload, text: "SF2 attendance data uploaded for 3rd Quarter", time: "Today", tone: "ok" },
+];
 
 const alerts = [
   { icon: AlertTriangle, text: `${totals.below} sections below SF2 ${SF2_TARGET}% target`, tone: "warn" },
@@ -125,7 +157,7 @@ function SectionCard({ section, adviser }: { section: SectionT; adviser: string 
   );
 }
 
-export function PrincipalView() {
+export function AdminView() {
   const overallRate = totals.campusAttendance.toFixed(1);
   const compliancePct = Math.round(
     ((totals.sections - totals.below) / totals.sections) * 100,
@@ -147,16 +179,16 @@ export function PrincipalView() {
       accent: "text-chart-2",
     },
     {
-      label: "SF2 Compliance",
-      value: `${compliancePct}%`,
-      hint: `${totals.sections - totals.below} of ${totals.sections} sections on target`,
-      icon: ShieldCheck,
+      label: "ID Cards Printed",
+      value: `${totals.enrolled - 3}`,
+      hint: "3 pending reprints",
+      icon: IdCard,
       accent: "text-chart-1",
     },
     {
-      label: "Sections Below Target",
-      value: totals.below.toString(),
-      hint: `< ${SF2_TARGET}% SF2 attendance`,
+      label: "Pending Tasks",
+      value: pendingTasks.length.toString(),
+      hint: "Admin & enrollment tasks",
       icon: AlertTriangle,
       accent: "text-destructive",
     },
@@ -169,6 +201,7 @@ export function PrincipalView() {
         subtitle={`${SCHOOL_NAME} · SY ${SCHOOL_YEAR}`}
       />
       <main className="space-y-6 p-4 sm:p-6">
+        {/* Hero Section */}
         <section
           className="relative overflow-hidden rounded-2xl p-6 text-primary-foreground shadow-[var(--shadow-elegant)]"
           style={{ background: "var(--gradient-primary)" }}
@@ -184,8 +217,8 @@ export function PrincipalView() {
                 {totals.enrolled} learners · {overallRate}% campus attendance
               </h2>
               <p className="mt-2 max-w-xl text-sm opacity-90">
-                {totals.below} section{totals.below === 1 ? "" : "s"} are tracking below the
-                DepEd SF2 {SF2_TARGET}% target. Review by department before the SF2 cutoff.
+                {totals.below} section{totals.below === 1 ? "" : "s"} below SF2 {SF2_TARGET}% target.
+                {pendingTasks.filter(t => t.priority === "High").length} high-priority tasks pending.
               </p>
             </div>
             <div className="flex gap-2">
@@ -201,6 +234,7 @@ export function PrincipalView() {
           </div>
         </section>
 
+        {/* Key Metrics */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {metrics.map((m) => (
             <Card key={m.label} className="overflow-hidden border-border/60">
@@ -220,6 +254,7 @@ export function PrincipalView() {
           ))}
         </section>
 
+        {/* Department Overview */}
         <section className="grid gap-6 lg:grid-cols-2">
           {departments.map((dept) => {
             const stats = dept.key === "JHS" ? jhs : shs;
@@ -273,6 +308,7 @@ export function PrincipalView() {
           })}
         </section>
 
+        {/* Charts Row */}
         <section className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
@@ -300,18 +336,15 @@ export function PrincipalView() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Campus Attendance — Last 7 Days</CardTitle>
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <TrendingUp className="h-3.5 w-3.5" /> Avg 91.7%
-              </span>
+            <CardHeader>
+              <CardTitle className="text-base">Enrollment by Grade Level</CardTitle>
             </CardHeader>
             <CardContent className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={attendanceTrend}>
+                <BarChart data={enrollmentByGrade}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="day" stroke="var(--color-muted-foreground)" fontSize={12} />
-                  <YAxis domain={[80, 100]} stroke="var(--color-muted-foreground)" fontSize={12} unit="%" />
+                  <XAxis dataKey="grade" stroke="var(--color-muted-foreground)" fontSize={12} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={12} />
                   <Tooltip
                     contentStyle={{
                       background: "var(--color-background)",
@@ -320,20 +353,14 @@ export function PrincipalView() {
                       fontSize: 12,
                     }}
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--color-chart-1)"
-                    strokeWidth={2.5}
-                    dot={{ r: 4, fill: "var(--color-chart-1)" }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
+                  <Bar dataKey="count" fill="var(--color-chart-3)" radius={[6, 6, 0, 0]} name="Learners" />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </section>
 
+        {/* At-Risk Learners & Pending Tasks */}
         <section className="grid gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
@@ -376,71 +403,127 @@ export function PrincipalView() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Admin Alerts & Priorities</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
+              <CardTitle className="text-base">Pending Tasks</CardTitle>
+              <Badge variant="outline">{pendingTasks.length} tasks</Badge>
             </CardHeader>
             <CardContent className="space-y-3">
-              {alerts.map((a, i) => (
-                <div key={i} className="flex items-start gap-3 rounded-lg border bg-card p-3">
-                  <div
-                    className={`rounded-md p-2 ${
-                      a.tone === "warn"
-                        ? "bg-destructive/10 text-destructive"
-                        : "bg-muted text-foreground"
-                    }`}
-                  >
-                    <a.icon className="h-4 w-4" />
+              {pendingTasks.map((task, i) => (
+                <div key={i} className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium leading-snug">{task.task}</p>
+                    <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" /> Due: {task.dueDate}
+                    </p>
                   </div>
-                  <p className="text-sm leading-snug">{a.text}</p>
+                  <Badge
+                    variant={
+                      task.priority === "High"
+                        ? "destructive"
+                        : task.priority === "Medium"
+                        ? "default"
+                        : "secondary"
+                    }
+                    className="shrink-0"
+                  >
+                    {task.priority}
+                  </Badge>
                 </div>
               ))}
             </CardContent>
           </Card>
         </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Learner ID Preview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const sample = allLearners[0];
-              return (
-                <div className="mx-auto w-full max-w-sm overflow-hidden rounded-xl border bg-card shadow-sm">
-                  <div className="bg-primary px-4 py-3 text-primary-foreground">
-                    <p className="text-xs uppercase tracking-wide opacity-80">{SCHOOL_NAME}</p>
-                    <p className="text-sm font-semibold">Learner Identification Card</p>
+        {/* ID Card Management & Recent Activity */}
+        <section className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
+              <CardTitle className="text-base">ID Card Management</CardTitle>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Printer className="h-4 w-4" /> Print Queue
+                </Button>
+                <Button size="sm" style={{ background: "var(--gradient-primary)" }}>
+                  <IdCard className="h-4 w-4" /> New ID
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border bg-card p-4">
+                  <div>
+                    <p className="text-sm font-medium">Total IDs Printed</p>
+                    <p className="text-2xl font-bold">{totals.enrolled - 3}</p>
                   </div>
-                  <div className="flex gap-4 p-4">
-                    <div className="flex h-24 w-20 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                      <Users className="h-8 w-8" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-base font-semibold">{fullName(sample.learner)}</p>
-                      <p className="text-sm text-muted-foreground">{sample.sectionLabel}</p>
-                      <p className="mt-1 font-mono text-xs text-muted-foreground">
-                        LRN: {sample.learner.lrn}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        SY {SCHOOL_YEAR} · {sample.department.key}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between border-t bg-muted/40 px-4 py-3">
-                    <div className="text-xs text-muted-foreground">Scan LRN to verify</div>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-md border bg-background">
-                      <QrCode className="h-7 w-7" />
-                    </div>
+                  <div className="rounded-lg bg-chart-1/10 p-3 text-chart-1">
+                    <CheckCircle2 className="h-6 w-6" />
                   </div>
                 </div>
-              );
-            })()}
+                <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                  <div>
+                    <p className="text-sm font-medium">Pending Reprints</p>
+                    <p className="text-2xl font-bold text-destructive">3</p>
+                  </div>
+                  <div className="rounded-lg bg-destructive/10 p-3 text-destructive">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {recentActivity.map((a, i) => (
+                <div key={i} className="flex items-start gap-3 rounded-lg border bg-card p-3">
+                  <div
+                    className={`rounded-md p-2 ${
+                      a.tone === "ok"
+                        ? "bg-chart-2/10 text-chart-2"
+                        : "bg-primary/10 text-primary"
+                    }`}
+                  >
+                    <a.icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm leading-snug">{a.text}</p>
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" /> {a.time}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Button variant="outline" className="justify-start" size="lg">
+              <Users className="mr-2 h-4 w-4" /> Register New Student
+            </Button>
+            <Button variant="outline" className="justify-start" size="lg">
+              <FileEdit className="mr-2 h-4 w-4" /> Update LRN Records
+            </Button>
+            <Button variant="outline" className="justify-start" size="lg">
+              <Download className="mr-2 h-4 w-4" /> Export SF1 Report
+            </Button>
+            <Button variant="outline" className="justify-start" size="lg">
+              <CalendarCheck className="mr-2 h-4 w-4" /> Submit SF2 Attendance
+            </Button>
           </CardContent>
         </Card>
 
         <footer className="flex items-center justify-center gap-2 pt-4 pb-2 text-center font-ui text-xs uppercase tracking-wider text-muted-foreground">
           <GraduationCap className="h-3.5 w-3.5" />
-          EduCard Pro · Aligned with DepEd SF1, SF2 &amp; LRN standards · Prototype data
+          EduCard Pro · Admin Portal · {SCHOOL_NAME} · SY {SCHOOL_YEAR}
         </footer>
       </main>
     </>

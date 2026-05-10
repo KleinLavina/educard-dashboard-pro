@@ -1,14 +1,14 @@
 import { createContext, useContext, useState } from "react";
 
-export type Role = "principal" | "teacher" | "student";
+export type Role = "admin" | "teacher" | "student" | "parent";
 
 const STORAGE_KEY = "educard_role";
 
 function readStored(): Role {
-  if (typeof localStorage === "undefined") return "principal";
+  if (typeof localStorage === "undefined") return "admin";
   const v = localStorage.getItem(STORAGE_KEY);
-  if (v === "teacher" || v === "student" || v === "principal") return v;
-  return "principal";
+  if (v === "teacher" || v === "student" || v === "admin" || v === "parent") return v;
+  return "admin";
 }
 
 interface RoleContextValue {
@@ -17,7 +17,7 @@ interface RoleContextValue {
 }
 
 const RoleContext = createContext<RoleContextValue>({
-  role: "principal",
+  role: "admin",
   setRole: () => {},
 });
 
