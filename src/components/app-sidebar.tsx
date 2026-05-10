@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Users,
@@ -24,14 +24,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-
-type Role = "principal" | "teacher" | "student";
-
-function detectRole(path: string): Role {
-  if (path.startsWith("/teacher")) return "teacher";
-  if (path.startsWith("/student")) return "student";
-  return "principal";
-}
+import { useRole, type Role } from "@/lib/role-context";
 
 const navConfig: Record<
   Role,
@@ -46,7 +39,7 @@ const navConfig: Record<
     label: "Principal / Registrar",
     icon: School,
     main: [
-      { title: "Dashboard", url: "/principal", icon: LayoutDashboard },
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
       { title: "Students", url: "/students", icon: Users },
       { title: "Attendance", url: "/attendance", icon: CalendarCheck },
       { title: "Grades", url: "/grades", icon: GraduationCap },
@@ -61,7 +54,7 @@ const navConfig: Record<
     label: "Teacher Portal",
     icon: BookOpen,
     main: [
-      { title: "Dashboard", url: "/teacher", icon: LayoutDashboard },
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
       { title: "My Students", url: "/students", icon: Users },
       { title: "Attendance", url: "/attendance", icon: CalendarCheck },
       { title: "Grades", url: "/grades", icon: GraduationCap },
@@ -76,7 +69,7 @@ const navConfig: Record<
     label: "Student Portal",
     icon: Users,
     main: [
-      { title: "Dashboard", url: "/student", icon: LayoutDashboard },
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
       { title: "My Grades", url: "/grades", icon: GraduationCap },
       { title: "Attendance", url: "/attendance", icon: CalendarCheck },
       { title: "Notifications", url: "/alerts", icon: Bell },
@@ -88,10 +81,10 @@ const navConfig: Record<
   },
 };
 
-const roleSwitcher: { role: Role; label: string; url: string; icon: React.ElementType }[] = [
-  { role: "principal", label: "Principal", url: "/principal", icon: School },
-  { role: "teacher", label: "Teacher", url: "/teacher", icon: BookOpen },
-  { role: "student", label: "Student", url: "/student", icon: Users },
+const roleSwitcher: { role: Role; label: string; icon: React.ElementType }[] = [
+  { role: "principal", label: "Principal", icon: School },
+  { role: "teacher", label: "Teacher", icon: BookOpen },
+  { role: "student", label: "Student", icon: Users },
 ];
 
 const roleGradients: Record<Role, string> = {
@@ -103,14 +96,18 @@ const roleGradients: Record<Role, string> = {
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { role, setRole } = useRole();
+  const navigate = useNavigate();
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
-  const role = detectRole(currentPath);
   const nav = navConfig[role];
 
+  function switchRole(newRole: Role) {
+    setRole(newRole);
+    navigate({ to: "/dashboard" });
+  }
+
   const isActive = (url: string) => {
-    if (url === "/principal" || url === "/teacher" || url === "/student") {
-      return currentPath === url;
-    }
+    if (url === "/dashboard") return currentPath === "/dashboard";
     return currentPath.startsWith(url);
   };
 
@@ -154,14 +151,13 @@ export function AppSidebar() {
               {roleSwitcher.map((r) => (
                 <SidebarMenuItem key={r.role}>
                   <SidebarMenuButton
-                    asChild
                     isActive={role === r.role}
                     tooltip={r.label}
+                    onClick={() => switchRole(r.role)}
+                    className="cursor-pointer"
                   >
-                    <Link to={r.url} className="flex items-center gap-2">
-                      <r.icon className="h-4 w-4" />
-                      <span>{r.label}</span>
-                    </Link>
+                    <r.icon className="h-4 w-4" />
+                    <span>{r.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

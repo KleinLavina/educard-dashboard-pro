@@ -16,6 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PrincipalRouteImport } from './routes/principal'
 import { Route as IdCardsRouteImport } from './routes/id-cards'
 import { Route as GradesRouteImport } from './routes/grades'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
@@ -55,6 +56,11 @@ const GradesRoute = GradesRouteImport.update({
   path: '/grades',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AttendanceRoute = AttendanceRouteImport.update({
   id: '/attendance',
   path: '/attendance',
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/attendance': typeof AttendanceRoute
+  '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
   '/principal': typeof PrincipalRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/attendance': typeof AttendanceRoute
+  '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
   '/principal': typeof PrincipalRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/attendance': typeof AttendanceRoute
+  '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
   '/principal': typeof PrincipalRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/attendance'
+    | '/dashboard'
     | '/grades'
     | '/id-cards'
     | '/principal'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/attendance'
+    | '/dashboard'
     | '/grades'
     | '/id-cards'
     | '/principal'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/attendance'
+    | '/dashboard'
     | '/grades'
     | '/id-cards'
     | '/principal'
@@ -151,6 +163,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlertsRoute: typeof AlertsRoute
   AttendanceRoute: typeof AttendanceRoute
+  DashboardRoute: typeof DashboardRoute
   GradesRoute: typeof GradesRoute
   IdCardsRoute: typeof IdCardsRoute
   PrincipalRoute: typeof PrincipalRoute
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GradesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/attendance': {
       id: '/attendance'
       path: '/attendance'
@@ -239,6 +259,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlertsRoute: AlertsRoute,
   AttendanceRoute: AttendanceRoute,
+  DashboardRoute: DashboardRoute,
   GradesRoute: GradesRoute,
   IdCardsRoute: IdCardsRoute,
   PrincipalRoute: PrincipalRoute,

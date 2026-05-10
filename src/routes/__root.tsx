@@ -12,6 +12,7 @@ import {
 import appCss from "../styles.css?url";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { RoleProvider } from "@/lib/role-context";
 
 function NotFoundComponent() {
   return (
@@ -86,10 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/Screenshot 2026-05-10 102005.png" },
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
     ],
   }),
   shellComponent: RootShell,
@@ -119,22 +117,26 @@ function RootComponent() {
 
   if (isLanding) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <Outlet />
-      </QueryClientProvider>
+      <RoleProvider>
+        <QueryClientProvider client={queryClient}>
+          <Outlet />
+        </QueryClientProvider>
+      </RoleProvider>
     );
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full">
-          <AppSidebar />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Outlet />
+    <RoleProvider>
+      <QueryClientProvider client={queryClient}>
+        <SidebarProvider>
+          <div className="flex min-h-screen w-full">
+            <AppSidebar />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <Outlet />
+            </div>
           </div>
-        </div>
-      </SidebarProvider>
-    </QueryClientProvider>
+        </SidebarProvider>
+      </QueryClientProvider>
+    </RoleProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   GraduationCap,
   IdCard,
@@ -16,6 +16,7 @@ import {
   Smartphone,
   Printer,
 } from "lucide-react";
+import { useRole, type Role } from "@/lib/role-context";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
@@ -71,14 +72,21 @@ const pillars = [
   { icon: School, text: "Multi-school / multi-tenant" },
 ];
 
-const roles = [
+const roles: {
+  key: Role;
+  title: string;
+  subtitle: string;
+  desc: string;
+  icon: React.ElementType;
+  gradient: string;
+  items: string[];
+}[] = [
   {
     key: "principal",
     title: "Principal / Registrar",
     subtitle: "School-wide overview",
     desc: "SF2 compliance dashboard, department analytics, flagged learners, section summaries, and registrar alerts — all in one view.",
     icon: School,
-    link: "/principal",
     gradient: "var(--gradient-primary)",
     items: ["Campus attendance overview", "SF2 compliance tracking", "Section & department stats", "Learner ID preview"],
   },
@@ -88,7 +96,6 @@ const roles = [
     subtitle: "Class management",
     desc: "Grade entry with formula engine, per-section attendance, class analytics, at-risk student flags, and bulk CSV import.",
     icon: BookOpen,
-    link: "/teacher",
     gradient: "var(--gradient-accent)",
     items: ["Grade entry per subject", "Class attendance log", "At-risk student flags", "Bulk grade import"],
   },
@@ -98,7 +105,6 @@ const roles = [
     subtitle: "Personal portal",
     desc: "View real-time grades, attendance history, conduct log, Messenger notifications, and your personal learner ID card.",
     icon: Users,
-    link: "/student",
     gradient: "linear-gradient(135deg, oklch(0.65 0.18 30), oklch(0.78 0.16 80))",
     items: ["Real-time grade viewing", "Attendance history", "Conduct log", "Learner ID card"],
   },
@@ -112,6 +118,14 @@ const stats = [
 ];
 
 function LandingPage() {
+  const { setRole } = useRole();
+  const navigate = useNavigate();
+
+  function enterAs(role: Role) {
+    setRole(role);
+    navigate({ to: "/dashboard" });
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* ── Sticky Header ── */}
@@ -135,25 +149,25 @@ function LandingPage() {
           </nav>
           <div className="flex items-center gap-2">
             <span className="hidden text-xs text-muted-foreground sm:block font-ui uppercase tracking-wider">Try demo:</span>
-            <Link
-              to="/principal"
+            <button
+              onClick={() => enterAs("principal")}
               className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
             >
               Principal
-            </Link>
-            <Link
-              to="/teacher"
+            </button>
+            <button
+              onClick={() => enterAs("teacher")}
               className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
             >
               Teacher
-            </Link>
-            <Link
-              to="/student"
+            </button>
+            <button
+              onClick={() => enterAs("student")}
               className="rounded-md px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
               style={{ background: "var(--gradient-primary)" }}
             >
               Student
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -176,24 +190,24 @@ function LandingPage() {
             EduCard Pro consolidates grade management, barcode attendance tracking, student ID printing, and real-time parent notifications into a single, affordable system — DepEd-aligned and SF2-ready.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/principal"
+            <button
+              onClick={() => enterAs("principal")}
               className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-primary shadow-lg transition-opacity hover:opacity-90"
             >
               <School className="h-4 w-4" /> Enter as Principal
-            </Link>
-            <Link
-              to="/teacher"
+            </button>
+            <button
+              onClick={() => enterAs("teacher")}
               className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-primary-foreground backdrop-blur transition-colors hover:bg-white/30"
             >
               <BookOpen className="h-4 w-4" /> Enter as Teacher
-            </Link>
-            <Link
-              to="/student"
+            </button>
+            <button
+              onClick={() => enterAs("student")}
               className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-primary-foreground backdrop-blur transition-colors hover:bg-white/30"
             >
               <Users className="h-4 w-4" /> Enter as Student
-            </Link>
+            </button>
           </div>
           <p className="mt-4 text-xs text-primary-foreground/60">Prototype demo — no login required</p>
         </div>
@@ -254,7 +268,7 @@ function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mb-10 text-center">
             <h2 className="text-2xl font-bold sm:text-3xl">Choose Your Portal</h2>
-            <p className="mt-2 text-muted-foreground">Each role has a dedicated dashboard tailored to their needs.</p>
+            <p className="mt-2 text-muted-foreground">Each role has a dedicated dashboard view tailored to their needs.</p>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {roles.map((r) => (
@@ -279,12 +293,12 @@ function LandingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link
-                    to={r.link as "/principal" | "/teacher" | "/student"}
+                  <button
+                    onClick={() => enterAs(r.key)}
                     className="mt-5 flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors group-hover:bg-muted"
                   >
                     Enter Portal <ChevronRight className="h-4 w-4" />
-                  </Link>
+                  </button>
                 </div>
               </div>
             ))}
