@@ -25,14 +25,14 @@ export const Route = createFileRoute("/students")({
 });
 
 const students = [
-  { id: "2026-0487", name: "Juan Dela Cruz", grade: "G7 Sampaguita", gpa: 92, status: "On Track" },
-  { id: "2026-0312", name: "Maria Santos", grade: "G8 Rosal", gpa: 88, status: "On Track" },
-  { id: "2026-0211", name: "Jose Rizal", grade: "G9 Adelfa", gpa: 74, status: "At Risk" },
-  { id: "2026-0145", name: "Andrea Mercado", grade: "G10 Ilang-Ilang", gpa: 90, status: "On Track" },
-  { id: "2026-0098", name: "Marco Reyes", grade: "G7 Sampaguita", gpa: 68, status: "At Risk" },
-  { id: "2026-0067", name: "Liza Bautista", grade: "G11 STEM", gpa: 94, status: "On Track" },
-  { id: "2026-0054", name: "Patricia Lim", grade: "G10 Ilang-Ilang", gpa: 86, status: "On Track" },
-  { id: "2026-0033", name: "Diego Aquino", grade: "G8 Rosal", gpa: 79, status: "On Track" },
+  { lrn: "136728140987", name: "Juan M. Dela Cruz", dept: "JHS", grade: "Grade 7 — Sampaguita", adviser: "Ms. Aurora Aquino", gpa: 92, status: "On Track" },
+  { lrn: "136728140312", name: "Maria L. Santos", dept: "JHS", grade: "Grade 7 — Rosal", adviser: "Mr. Benjie Lopez", gpa: 88, status: "On Track" },
+  { lrn: "136728140211", name: "Jose A. Aguilar", dept: "JHS", grade: "Grade 9 — Bonifacio", adviser: "Mr. Felix Ramos", gpa: 74, status: "At Risk" },
+  { lrn: "136728140145", name: "Andrea P. Mercado", dept: "JHS", grade: "Grade 10 — Del Pilar", adviser: "Mr. Hector Santos", gpa: 90, status: "On Track" },
+  { lrn: "136728140098", name: "Marco T. Reyes", dept: "JHS", grade: "Grade 8 — Ilang-Ilang", adviser: "Mr. Dario Tan", gpa: 68, status: "At Risk" },
+  { lrn: "136728140067", name: "Liza R. Bautista", dept: "SHS", grade: "Grade 11 — St. Jude (STEM)", adviser: "Ms. Imelda Villanueva", gpa: 94, status: "On Track" },
+  { lrn: "136728140054", name: "Patricia D. Lim", dept: "SHS", grade: "Grade 12 — St. Francis (TVL-ICT)", adviser: "Mr. Lito Pascual", gpa: 86, status: "On Track" },
+  { lrn: "136728140033", name: "Diego N. Aquino", dept: "SHS", grade: "Grade 11 — St. Therese (ABM)", adviser: "Mr. Joel Mercado", gpa: 79, status: "On Track" },
 ];
 
 function StudentsPage() {
@@ -61,19 +61,25 @@ function StudentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Student ID</TableHead>
-                    <TableHead>Name</TableHead>
+                    <TableHead>LRN</TableHead>
+                    <TableHead>Learner Name</TableHead>
+                    <TableHead>Dept</TableHead>
                     <TableHead>Grade & Section</TableHead>
+                    <TableHead>Adviser</TableHead>
                     <TableHead className="text-right">GPA</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {students.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{s.id}</TableCell>
+                    <TableRow key={s.lrn}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{s.lrn}</TableCell>
                       <TableCell className="font-medium">{s.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{s.dept}</Badge>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{s.grade}</TableCell>
+                      <TableCell className="text-muted-foreground">{s.adviser}</TableCell>
                       <TableCell className="text-right font-semibold">{s.gpa}</TableCell>
                       <TableCell>
                         <Badge variant={s.status === "At Risk" ? "destructive" : "secondary"}>
