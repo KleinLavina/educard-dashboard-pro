@@ -61,19 +61,25 @@ function StudentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Student ID</TableHead>
-                    <TableHead>Name</TableHead>
+                    <TableHead>LRN</TableHead>
+                    <TableHead>Learner Name</TableHead>
+                    <TableHead>Dept</TableHead>
                     <TableHead>Grade & Section</TableHead>
+                    <TableHead>Adviser</TableHead>
                     <TableHead className="text-right">GPA</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {students.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{s.id}</TableCell>
+                    <TableRow key={s.lrn}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{s.lrn}</TableCell>
                       <TableCell className="font-medium">{s.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{s.dept}</Badge>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{s.grade}</TableCell>
+                      <TableCell className="text-muted-foreground">{s.adviser}</TableCell>
                       <TableCell className="text-right font-semibold">{s.gpa}</TableCell>
                       <TableCell>
                         <Badge variant={s.status === "At Risk" ? "destructive" : "secondary"}>
