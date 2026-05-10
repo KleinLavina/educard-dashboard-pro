@@ -18,13 +18,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { allLearners, allSections, fullName } from "@/lib/school-data";
 
 export const Route = createFileRoute("/grades")({
   component: GradesPage,
   head: () => ({
     meta: [
       { title: "Grades — EduCard Pro" },
-      { name: "description", content: "Subject performance and grade distribution." },
+      { name: "description", content: "Subject performance and grade distribution by section." },
     ],
   }),
 });
@@ -38,27 +39,32 @@ const subjects = [
   { name: "MAPEH", avg: 92 },
 ];
 
-const distribution = [
-  { letter: "A", pct: 28, color: "var(--color-chart-2)" },
-  { letter: "B", pct: 41, color: "var(--color-chart-1)" },
-  { letter: "C", pct: 22, color: "var(--color-chart-4)" },
-  { letter: "D", pct: 7, color: "var(--color-chart-3)" },
-  { letter: "F", pct: 2, color: "var(--color-destructive)" },
-];
+const sectionAvgs = allSections
+  .map((s) => ({
+    name: s.label.replace("Grade ", "G").replace(" - ", "-"),
+    avg: Math.round(
+      s.section.learners.reduce((a, l) => a + l.gpa, 0) /
+        Math.max(s.section.learners.length, 1),
+    ),
+  }))
+  .sort((a, b) => b.avg - a.avg);
 
-const recent = [
-  { teacher: "Ms. Aquino", student: "Juan Dela Cruz", subject: "Math", change: "B → A", time: "2h ago" },
-  { teacher: "Mr. Lopez", student: "Maria Santos", subject: "Science", change: "B+ → A-", time: "4h ago" },
-  { teacher: "Ms. Cruz", student: "Jose Rizal", subject: "English", change: "C+ → C", time: "Yesterday" },
-];
+const recentChanges = allLearners.slice(0, 5).map((l, i) => ({
+  teacher: ["Ms. Aquino", "Mr. Lopez", "Ms. Cruz", "Mr. Tan", "Ms. Domingo"][i % 5],
+  student: fullName(l.learner),
+  section: l.sectionLabel,
+  subject: ["Math", "Science", "English", "Filipino", "AP"][i % 5],
+  change: ["B → A", "B+ → A-", "C+ → B-", "A- → A", "C → C+"][i % 5],
+  time: ["2h ago", "4h ago", "Yesterday", "Yesterday", "2d ago"][i % 5],
+}));
 
 function GradesPage() {
   return (
     <>
       <PageHeader title="Grades" subtitle="Subject performance · 3rd Quarter" />
       <main className="space-y-6 p-4 sm:p-6">
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base">Average by Subject</CardTitle>
             </CardHeader>
@@ -83,23 +89,24 @@ function GradesPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Grade Distribution</CardTitle>
+              <CardTitle className="text-base">Section GPA Ranking</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {distribution.map((d) => (
-                <div key={d.letter} className="space-y-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-semibold">{d.letter}</span>
-                    <span className="text-muted-foreground">{d.pct}%</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${d.pct * 2.5}%`, backgroundColor: d.color }}
-                    />
-                  </div>
-                </div>
-              ))}
+            <CardContent className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={sectionAvgs} layout="vertical" margin={{ left: 30 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis type="number" domain={[60, 100]} stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <YAxis type="category" dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} width={130} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-background)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 8,
+                    }}
+                  />
+                  <Bar dataKey="avg" fill="var(--color-chart-2)" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
@@ -112,18 +119,20 @@ function GradesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Teacher</TableHead>
-                  <TableHead>Student</TableHead>
+                  <TableHead>Subject Teacher</TableHead>
+                  <TableHead>Learner</TableHead>
+                  <TableHead>Section</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Change</TableHead>
                   <TableHead>When</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recent.map((r, i) => (
+                {recentChanges.map((r, i) => (
                   <TableRow key={i}>
                     <TableCell>{r.teacher}</TableCell>
                     <TableCell className="font-medium">{r.student}</TableCell>
+                    <TableCell className="text-muted-foreground">{r.section}</TableCell>
                     <TableCell className="text-muted-foreground">{r.subject}</TableCell>
                     <TableCell className="font-mono text-xs">{r.change}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.time}</TableCell>
