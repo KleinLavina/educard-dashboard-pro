@@ -158,6 +158,10 @@ export function ParentView() {
   const [performanceAnalysisOpen, setPerformanceAnalysisOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [message, setMessage] = useState("");
+  const [notifDetailOpen, setNotifDetailOpen] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState<typeof recentNotifications[0] | null>(null);
+  const [conductDetailOpen, setConductDetailOpen] = useState(false);
+  const [selectedConduct, setSelectedConduct] = useState<typeof conductRecords[0] | null>(null);
 
   const activeChildData = myChildren[activeChild];
   const activeChildName = fullName(activeChildData.learner);
@@ -662,7 +666,8 @@ export function ParentView() {
               {childNotifications.map((n, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-3 rounded-lg border bg-card p-3"
+                  className="flex items-start gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => { setSelectedNotif(n); setNotifDetailOpen(true); }}
                 >
                   <div
                     className={`rounded-md p-2 shrink-0 ${
@@ -700,7 +705,8 @@ export function ParentView() {
               {childConductRecords.map((c, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-3 rounded-lg border bg-card p-3"
+                  className="flex items-start gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => { setSelectedConduct(c); setConductDetailOpen(true); }}
                 >
                   <div
                     className={`rounded-md p-2 shrink-0 ${
@@ -1136,6 +1142,57 @@ export function ParentView() {
             <Button variant="outline" onClick={() => setPerformanceAnalysisOpen(false)}>
               Close
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notification Detail Dialog */}
+      <Dialog open={notifDetailOpen} onOpenChange={setNotifDetailOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{selectedNotif?.title ?? "Notification"}</DialogTitle>
+          </DialogHeader>
+          {selectedNotif && (
+            <div className="space-y-3 py-2">
+              <div className={`flex items-center gap-3 rounded-lg p-3 ${selectedNotif.tone === "ok" ? "bg-chart-2/10" : "bg-primary/10"}`}>
+                <selectedNotif.icon className={`h-5 w-5 shrink-0 ${selectedNotif.tone === "ok" ? "text-chart-2" : "text-primary"}`} />
+                <p className="text-sm font-medium">{selectedNotif.text}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div><p className="text-xs text-muted-foreground">Child</p><p className="font-semibold">{selectedNotif.child}</p></div>
+                <div><p className="text-xs text-muted-foreground">Time</p><p className="font-semibold">{selectedNotif.time}</p></div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button className="w-full" variant="outline" onClick={() => setNotifDetailOpen(false)}>Dismiss</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Conduct Detail Dialog */}
+      <Dialog open={conductDetailOpen} onOpenChange={setConductDetailOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Conduct Record</DialogTitle>
+          </DialogHeader>
+          {selectedConduct && (
+            <div className="space-y-3 py-2">
+              <div className={`flex items-start gap-3 rounded-lg p-3 ${selectedConduct.type === "Positive" ? "bg-chart-2/10" : "bg-muted"}`}>
+                {selectedConduct.type === "Positive" ? <CheckCircle2 className="h-5 w-5 text-chart-2 shrink-0 mt-0.5" /> : <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />}
+                <div>
+                  <p className="text-sm font-semibold">{selectedConduct.item}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{selectedConduct.date}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{selectedConduct.child}</Badge>
+                <Badge variant={selectedConduct.type === "Positive" ? "secondary" : "outline"}>{selectedConduct.type}</Badge>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button className="w-full" variant="outline" onClick={() => setConductDetailOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

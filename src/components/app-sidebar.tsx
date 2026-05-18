@@ -17,6 +17,8 @@ import {
   FileEdit,
   UserPlus,
   MessageCircle,
+  FileBarChart,
+  Phone,
 } from "lucide-react";
 import {
   Sidebar,
@@ -142,9 +144,11 @@ export function AppSidebar() {
                 <CollapsibleContent>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      <NavItem title="All Students" url="/students" icon={Users} />
+                      <NavItem title="All Students" url="/students"   icon={Users} />
                       <NavItem title="Attendance"   url="/attendance" icon={CalendarCheck} />
-                      <NavItem title="Grades"       url="/grades" icon={GraduationCap} />
+                      <NavItem title="Grades"       url="/grades"     icon={GraduationCap} />
+                      <NavItem title="Reports"      url="/reports"    icon={FileBarChart} />
+                      <NavItem title="Contacts"     url="/contacts"   icon={Phone} />
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </CollapsibleContent>
@@ -193,6 +197,7 @@ export function AppSidebar() {
                   <NavItem title="My Students" url="/students"   icon={Users} />
                   <NavItem title="Attendance"  url="/attendance" icon={CalendarCheck} />
                   <NavItem title="Grades"      url="/grades"     icon={GraduationCap} />
+                  <NavItem title="Reports"     url="/reports"    icon={FileBarChart} />
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -200,6 +205,7 @@ export function AppSidebar() {
               <SidebarGroupLabel className="font-ui uppercase tracking-widest">Tools</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
+                  <NavItem title="Contacts" url="/contacts" icon={Phone} />
                   <NavItem title="ID Cards" url="/id-cards" icon={IdCard} />
                   <NavItem title="Alerts"   url="/alerts"   icon={Bell} />
                   <NavItem title="Settings" url="/settings" icon={Settings} />
@@ -220,6 +226,7 @@ export function AppSidebar() {
                   <NavItem title="My Children" url="/students"   icon={Users} />
                   <NavItem title="Grades"      url="/grades"     icon={GraduationCap} />
                   <NavItem title="Attendance"  url="/attendance" icon={CalendarCheck} />
+                  <NavItem title="Reports"     url="/reports"    icon={FileBarChart} />
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -227,6 +234,7 @@ export function AppSidebar() {
               <SidebarGroupLabel className="font-ui uppercase tracking-widest">Tools</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
+                  <NavItem title="Contacts"      url="/contacts" icon={Phone} />
                   <NavItem title="ID Cards"      url="/id-cards" icon={IdCard} />
                   <NavItem title="Notifications" url="/alerts"   icon={BellRing} />
                   <NavItem title="Settings"      url="/settings" icon={Settings} />

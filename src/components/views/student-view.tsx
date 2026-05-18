@@ -94,6 +94,13 @@ const conductLog = [
 
 export function StudentView() {
   const [reportCardOpen, setReportCardOpen] = useState(false);
+  const [gradeDetailOpen, setGradeDetailOpen] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<typeof subjects[0] | null>(null);
+  const [notifDetailOpen, setNotifDetailOpen] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState<typeof notifications[0] | null>(null);
+  const [qrZoomOpen, setQrZoomOpen] = useState(false);
+  const [conductDetailOpen, setConductDetailOpen] = useState(false);
+  const [selectedConduct, setSelectedConduct] = useState<typeof conductLog[0] | null>(null);
   
   const currentQ3Avg = subjects.reduce((a, s) => a + s.q3, 0) / subjects.length;
   const isAboveTarget = myLearner.attendanceRate >= SF2_TARGET;
@@ -188,7 +195,7 @@ export function StudentView() {
                     {subjects.map((s) => {
                       const avg = Math.round((s.q1 + s.q2 + s.q3) / 3);
                       return (
-                        <tr key={s.name}>
+                        <tr key={s.name} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => { setSelectedSubject(s); setGradeDetailOpen(true); }}>
                           <td className="py-3 font-medium">{s.name}</td>
                           <td className="py-3 text-center text-muted-foreground">{s.q1}</td>
                           <td className="py-3 text-center text-muted-foreground">{s.q2}</td>
@@ -259,7 +266,7 @@ export function StudentView() {
             </CardHeader>
             <CardContent className="space-y-3">
               {notifications.map((n, i) => (
-                <div key={i} className="flex items-start gap-3 rounded-lg border bg-card p-3">
+                <div key={i} className="flex items-start gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSelectedNotif(n); setNotifDetailOpen(true); }}>
                   <div className={`rounded-md p-2 shrink-0 ${n.tone === "ok" ? "bg-chart-2/10 text-chart-2" : "bg-primary/10 text-primary"}`}>
                     <n.icon className="h-4 w-4" />
                   </div>
@@ -312,9 +319,9 @@ export function StudentView() {
                 </div>
                 <div className="flex items-center justify-between border-t bg-muted/40 px-4 py-3">
                   <p className="text-xs text-muted-foreground">Scan LRN to verify attendance</p>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-md border bg-background">
+                  <button className="flex h-12 w-12 items-center justify-center rounded-md border bg-background hover:bg-muted transition-colors" onClick={() => setQrZoomOpen(true)} title="View full QR code">
                     <QrCode className="h-7 w-7" />
-                  </div>
+                  </button>
                 </div>
               </div>
             </CardContent>
@@ -326,7 +333,7 @@ export function StudentView() {
             </CardHeader>
             <CardContent className="space-y-3">
               {conductLog.map((c, i) => (
-                <div key={i} className="flex items-start gap-3 rounded-lg border bg-card p-3">
+                <div key={i} className="flex items-start gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setSelectedConduct(c); setConductDetailOpen(true); }}>
                   <div className={`rounded-md p-2 shrink-0 ${c.type === "Positive" ? "bg-chart-2/10 text-chart-2" : "bg-muted text-muted-foreground"}`}>
                     {c.type === "Positive" ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                   </div>
@@ -419,6 +426,109 @@ export function StudentView() {
                 <Download className="mr-2 h-4 w-4" />
                 Download PDF
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Grade Detail Dialog */}
+        <Dialog open={gradeDetailOpen} onOpenChange={setGradeDetailOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>{selectedSubject?.name ?? "Subject"} — Grade Details</DialogTitle>
+            </DialogHeader>
+            {selectedSubject && (
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Q1", value: selectedSubject.q1 },
+                    { label: "Q2", value: selectedSubject.q2 },
+                    { label: "Q3", value: selectedSubject.q3 },
+                    { label: "Average", value: Math.round((selectedSubject.q1 + selectedSubject.q2 + selectedSubject.q3) / 3) },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-lg border bg-card p-3 text-center">
+                      <p className="text-xs text-muted-foreground">{item.label}</p>
+                      <p className={`text-2xl font-bold ${item.value < 75 ? "text-destructive" : item.value >= 90 ? "text-chart-2" : ""}`}>{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+                  {selectedSubject.q3 >= 90 ? "Outstanding performance! Keep it up." : selectedSubject.q3 >= 85 ? "Very satisfactory. You're doing great." : selectedSubject.q3 >= 80 ? "Satisfactory performance." : selectedSubject.q3 >= 75 ? "Fairly satisfactory — aim higher next quarter." : "Did not meet expectations — talk to your teacher for support."}
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button className="w-full" variant="outline" onClick={() => setGradeDetailOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Notification Detail Dialog */}
+        <Dialog open={notifDetailOpen} onOpenChange={setNotifDetailOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>{selectedNotif?.title ?? "Notification"}</DialogTitle>
+            </DialogHeader>
+            {selectedNotif && (
+              <div className="space-y-3 py-2">
+                <div className={`flex items-center gap-3 rounded-lg p-3 ${selectedNotif.tone === "ok" ? "bg-chart-2/10" : "bg-primary/10"}`}>
+                  <selectedNotif.icon className={`h-5 w-5 shrink-0 ${selectedNotif.tone === "ok" ? "text-chart-2" : "text-primary"}`} />
+                  <p className="text-sm font-medium">{selectedNotif.text}</p>
+                </div>
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" /> {selectedNotif.time}
+                </p>
+              </div>
+            )}
+            <DialogFooter>
+              <Button className="w-full" variant="outline" onClick={() => setNotifDetailOpen(false)}>Dismiss</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* QR Zoom Dialog */}
+        <Dialog open={qrZoomOpen} onOpenChange={setQrZoomOpen}>
+          <DialogContent className="max-w-xs text-center">
+            <DialogHeader>
+              <DialogTitle>Your LRN QR Code</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center gap-4 py-4">
+              <div className="flex h-44 w-44 items-center justify-center rounded-2xl border-4 border-primary/30 bg-background p-4">
+                <QrCode className="h-32 w-32 text-foreground" />
+              </div>
+              <div>
+                <p className="font-semibold">{fullName(myLearner)}</p>
+                <p className="font-mono text-sm text-muted-foreground">{myLearner.lrn}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Scan at the school gate to log attendance automatically.</p>
+            </div>
+            <DialogFooter>
+              <Button className="w-full" onClick={() => setQrZoomOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Conduct Detail Dialog */}
+        <Dialog open={conductDetailOpen} onOpenChange={setConductDetailOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Conduct Record</DialogTitle>
+            </DialogHeader>
+            {selectedConduct && (
+              <div className="space-y-3 py-2">
+                <div className={`flex items-start gap-3 rounded-lg p-3 ${selectedConduct.type === "Positive" ? "bg-chart-2/10" : "bg-muted"}`}>
+                  {selectedConduct.type === "Positive" ? <CheckCircle2 className="h-5 w-5 text-chart-2 shrink-0 mt-0.5" /> : <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />}
+                  <div>
+                    <p className="text-sm font-semibold">{selectedConduct.item}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{selectedConduct.date}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={selectedConduct.type === "Positive" ? "secondary" : "outline"}>{selectedConduct.type}</Badge>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button className="w-full" variant="outline" onClick={() => setConductDetailOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

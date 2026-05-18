@@ -19,6 +19,9 @@ import {
   Download,
   CalendarCheck,
   Camera,
+  Search,
+  Plus,
+  Scan,
 } from "lucide-react";
 import {
   LineChart,
@@ -180,7 +183,15 @@ function SectionCard({ section, adviser }: { section: SectionT; adviser: string 
 export function AdminView() {
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [sf1ExportOpen, setSf1ExportOpen] = useState(false);
-  
+  const [lrnUpdateOpen, setLrnUpdateOpen] = useState(false);
+  const [sf2SubmitOpen, setSf2SubmitOpen] = useState(false);
+  const [printQueueOpen, setPrintQueueOpen] = useState(false);
+  const [newIdOpen, setNewIdOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<{ task: string; priority: string; dueDate: string } | null>(null);
+  const [selectedFlagged, setSelectedFlagged] = useState<typeof flaggedLearners[0] | null>(null);
+  const [lrnSearch, setLrnSearch] = useState("");
+  const [newIdSearch, setNewIdSearch] = useState("");
+
   // Enroll form state
   const [lrn, setLrn] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -451,7 +462,7 @@ export function AdminView() {
                   </TableHeader>
                   <TableBody>
                     {flaggedLearners.map((l) => (
-                      <TableRow key={l.learner.lrn}>
+                      <TableRow key={l.learner.lrn} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedFlagged(l)}>
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {l.learner.lrn}
                         </TableCell>
@@ -479,7 +490,7 @@ export function AdminView() {
             </CardHeader>
             <CardContent className="space-y-3">
               {pendingTasks.map((task, i) => (
-                <div key={i} className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3">
+                <div key={i} className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setSelectedTask(task)}>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium leading-snug">{task.task}</p>
                     <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
@@ -510,10 +521,10 @@ export function AdminView() {
             <CardHeader className="flex flex-row items-center justify-between gap-3">
               <CardTitle className="text-base">ID Card Management</CardTitle>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => setPrintQueueOpen(true)}>
                   <Printer className="h-4 w-4" /> Print Queue
                 </Button>
-                <Button size="sm" style={{ background: "var(--gradient-primary)" }}>
+                <Button size="sm" style={{ background: "var(--gradient-primary)" }} onClick={() => setNewIdOpen(true)}>
                   <IdCard className="h-4 w-4" /> New ID
                 </Button>
               </div>
@@ -584,7 +595,7 @@ export function AdminView() {
             >
               <Users className="mr-2 h-4 w-4" /> Register New Student
             </Button>
-            <Button variant="outline" className="justify-start" size="lg">
+            <Button variant="outline" className="justify-start" size="lg" onClick={() => setLrnUpdateOpen(true)}>
               <FileEdit className="mr-2 h-4 w-4" /> Update LRN Records
             </Button>
             <Button
@@ -595,7 +606,7 @@ export function AdminView() {
             >
               <Download className="mr-2 h-4 w-4" /> Export SF1 Report
             </Button>
-            <Button variant="outline" className="justify-start" size="lg">
+            <Button variant="outline" className="justify-start" size="lg" onClick={() => setSf2SubmitOpen(true)}>
               <CalendarCheck className="mr-2 h-4 w-4" /> Submit SF2 Attendance
             </Button>
           </CardContent>
@@ -766,6 +777,197 @@ export function AdminView() {
               <Button onClick={handleSf1Export}>
                 <Download className="mr-2 h-4 w-4" />
                 Download PDF
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* LRN Update Dialog */}
+        <Dialog open={lrnUpdateOpen} onOpenChange={setLrnUpdateOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Update LRN Records</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="lrn-search">Search Learner</Label>
+                <div className="flex gap-2">
+                  <Input id="lrn-search" placeholder="LRN or learner name..." value={lrnSearch} onChange={(e) => setLrnSearch(e.target.value)} />
+                  <Button size="sm" variant="outline"><Search className="h-4 w-4" /></Button>
+                </div>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+                <p className="font-semibold mb-2">Instructions</p>
+                <ol className="space-y-1 text-xs text-muted-foreground list-decimal list-inside">
+                  <li>Search by LRN or learner name</li>
+                  <li>Select the correct learner from results</li>
+                  <li>Update LRN, section, or personal details</li>
+                  <li>Save to sync with DepEd LIS</li>
+                </ol>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setLrnUpdateOpen(false); setLrnSearch(""); }}>Cancel</Button>
+              <Button onClick={() => { toast.success("LRN record updated successfully"); setLrnUpdateOpen(false); setLrnSearch(""); }}>
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* SF2 Submit Dialog */}
+        <Dialog open={sf2SubmitOpen} onOpenChange={setSf2SubmitOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Submit SF2 Attendance to DepEd</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Sections with complete SF2</span><span className="font-semibold text-chart-2">8 / 10</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Pending submission</span><span className="font-semibold text-destructive">2</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Quarter</span><span className="font-semibold">3rd Quarter</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Deadline</span><span className="font-semibold">May 30, 2026</span></div>
+              </div>
+              <p className="text-xs text-muted-foreground">Sections with incomplete attendance data will be excluded. Advisers of pending sections have been notified.</p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSf2SubmitOpen(false)}>Cancel</Button>
+              <Button onClick={() => { toast.success("SF2 submitted to DepEd portal — 8 sections"); setSf2SubmitOpen(false); }}>
+                <CalendarCheck className="mr-2 h-4 w-4" /> Submit to DepEd
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Print Queue Dialog */}
+        <Dialog open={printQueueOpen} onOpenChange={setPrintQueueOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>ID Card Print Queue</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              {[
+                { name: "Maria A. Santos", section: "G7-Sampaguita", status: "Ready" },
+                { name: "Jose B. Reyes", section: "G8-Rosa", status: "Ready" },
+                { name: "Ana C. Cruz", section: "G7-Sampaguita", status: "Processing" },
+                { name: "Pedro D. Lim", section: "G9-Waling-Waling", status: "Ready" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg border bg-card p-3">
+                  <div>
+                    <p className="text-sm font-semibold">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.section}</p>
+                  </div>
+                  <Badge variant={item.status === "Ready" ? "secondary" : "outline"}>{item.status}</Badge>
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPrintQueueOpen(false)}>Close</Button>
+              <Button onClick={() => { toast.success("3 ID cards sent to printer"); setPrintQueueOpen(false); }}>
+                <Printer className="mr-2 h-4 w-4" /> Print Ready Cards
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* New ID Dialog */}
+        <Dialog open={newIdOpen} onOpenChange={setNewIdOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Generate New ID Card</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="id-search">Search Learner or Staff</Label>
+                <div className="flex gap-2">
+                  <Input id="id-search" placeholder="LRN, name, or employee ID..." value={newIdSearch} onChange={(e) => setNewIdSearch(e.target.value)} />
+                  <Button size="sm" variant="outline"><Search className="h-4 w-4" /></Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>ID Type</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {["Student ID", "Teacher ID", "Staff ID", "Visitor Pass"].map((t) => (
+                    <Button key={t} variant="outline" size="sm" className="justify-start text-xs">
+                      <IdCard className="mr-2 h-3.5 w-3.5" /> {t}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setNewIdOpen(false); setNewIdSearch(""); }}>Cancel</Button>
+              <Button onClick={() => { toast.success("New ID card queued for printing"); setNewIdOpen(false); setNewIdSearch(""); }}>
+                <Plus className="mr-2 h-4 w-4" /> Generate & Print
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Task Detail Dialog */}
+        <Dialog open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Task Details</DialogTitle>
+            </DialogHeader>
+            {selectedTask && (
+              <div className="space-y-4 py-2">
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <div>
+                    <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">Task</p>
+                    <p className="text-sm font-semibold mt-1">{selectedTask.task}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">Priority</p>
+                      <Badge className="mt-1" variant={selectedTask.priority === "High" ? "destructive" : selectedTask.priority === "Medium" ? "default" : "secondary"}>{selectedTask.priority}</Badge>
+                    </div>
+                    <div>
+                      <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">Due Date</p>
+                      <p className="text-sm font-semibold mt-1">{selectedTask.dueDate}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedTask(null)}>Close</Button>
+              <Button onClick={() => { toast.success("Task marked as complete"); setSelectedTask(null); }}>
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Mark Complete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Flagged Learner Detail Dialog */}
+        <Dialog open={!!selectedFlagged} onOpenChange={(open) => !open && setSelectedFlagged(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>At-Risk Learner Detail</DialogTitle>
+            </DialogHeader>
+            {selectedFlagged && (
+              <div className="space-y-4 py-2">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-destructive/10">
+                    <AlertTriangle className="h-7 w-7 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-base">{fullName(selectedFlagged.learner)}</p>
+                    <p className="text-sm text-muted-foreground">{selectedFlagged.sectionLabel}</p>
+                    <p className="font-mono text-xs text-muted-foreground">LRN: {selectedFlagged.learner.lrn}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-destructive/5 p-4 space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Attendance Rate</span><span className={`font-semibold ${selectedFlagged.learner.attendanceRate < SF2_TARGET ? "text-destructive" : "text-chart-2"}`}>{selectedFlagged.learner.attendanceRate.toFixed(1)}%</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">SF2 Target</span><span className="font-semibold">{SF2_TARGET}%</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Section Adviser</span><span className="font-semibold">{selectedFlagged.section.adviser}</span></div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedFlagged(null)}>Close</Button>
+              <Button onClick={() => { toast.success("Adviser notified via Messenger"); setSelectedFlagged(null); }}>
+                <Bell className="mr-2 h-4 w-4" /> Notify Adviser
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -27,8 +27,9 @@ export const Route = createFileRoute("/reports")({
 function ReportsPage() {
   const { role } = useRole();
   
-  if (role === "principal") return <PrincipalReports />;
+  if (role === "admin") return <PrincipalReports />;
   if (role === "teacher") return <TeacherReports />;
+  if (role === "parent") return <ParentReports />;
   return <StudentReports />;
 }
 
@@ -463,6 +464,97 @@ function TeacherReports() {
           </CardContent>
         </Card>
       </main>
+    </>
+  );
+}
+
+/* ─── Parent: Children Reports ──────────────────────────── */
+function ParentReports() {
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<{ title: string; child: string; desc: string } | null>(null);
+
+  const childReports = [
+    { title: "Report Card — Q3", child: "Juan M. Dela Cruz", desc: "3rd quarter grades and teacher remarks" },
+    { title: "Attendance Record", child: "Juan M. Dela Cruz", desc: "Complete daily attendance history" },
+    { title: "Conduct Summary", child: "Juan M. Dela Cruz", desc: "Behavior and conduct log for Q3" },
+    { title: "Report Card — Q3", child: "Bea L. Soriano", desc: "3rd quarter grades and teacher remarks" },
+    { title: "Attendance Record", child: "Bea L. Soriano", desc: "Complete daily attendance history" },
+    { title: "Conduct Summary", child: "Bea L. Soriano", desc: "Behavior and conduct log for Q3" },
+  ];
+
+  return (
+    <>
+      <PageHeader
+        title="Children's Reports"
+        subtitle={`${SCHOOL_NAME} · SY ${SCHOOL_YEAR}`}
+      />
+      <main className="space-y-6 p-4 sm:p-6">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            { label: "Children Enrolled", value: "2", icon: Users, color: "text-primary" },
+            { label: "Current Quarter", value: "3rd", icon: Calendar, color: "text-chart-1" },
+            { label: "Reports Available", value: `${childReports.length}`, icon: FileText, color: "text-chart-2" },
+          ].map((stat) => (
+            <Card key={stat.label}>
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className={`rounded-lg bg-muted p-2 ${stat.color}`}>
+                  <stat.icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">{stat.label}</p>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Available Reports</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {childReports.map((report, idx) => (
+              <div key={idx} className="flex items-center justify-between rounded-lg border bg-card p-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-sm">{report.title}</p>
+                    <Badge variant="outline" className="text-[10px]">{report.child}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{report.desc}</p>
+                </div>
+                <Button size="sm" onClick={() => { setSelectedReport(report); setDownloadOpen(true); }}>
+                  <Download className="h-4 w-4" /> Download
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </main>
+
+      <Dialog open={downloadOpen} onOpenChange={setDownloadOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Download Report</DialogTitle>
+          </DialogHeader>
+          {selectedReport && (
+            <div className="space-y-3 py-2">
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-1 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Report</span><span className="font-semibold">{selectedReport.title}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Child</span><span className="font-semibold">{selectedReport.child}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Format</span><span className="font-semibold">PDF</span></div>
+              </div>
+              <p className="text-xs text-muted-foreground">This report is generated from official school records. Content reflects the latest data available in the system.</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDownloadOpen(false)}>Cancel</Button>
+            <Button onClick={() => { toast.success(`${selectedReport?.title} downloaded`); setDownloadOpen(false); }}>
+              <Download className="mr-2 h-4 w-4" /> Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

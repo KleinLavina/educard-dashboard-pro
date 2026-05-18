@@ -11,6 +11,9 @@ import {
   Save,
   GraduationCap,
   FileUp,
+  Send,
+  Bell,
+  IdCard,
 } from "lucide-react";
 import {
   BarChart,
@@ -92,6 +95,11 @@ export function TeacherView() {
   const [grades, setGrades] = useState(initialGrades);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [csvStep, setCsvStep] = useState<"idle" | "preview">("idle");
+  const [studentProfileOpen, setStudentProfileOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<typeof mySectionLearners[0] | null>(null);
+  const [submitGradesOpen, setSubmitGradesOpen] = useState(false);
+  const [atRiskDetailOpen, setAtRiskDetailOpen] = useState(false);
+  const [selectedAtRisk, setSelectedAtRisk] = useState<typeof mySectionLearners[0] | null>(null);
 
   const atRisk = mySectionLearners.filter(
     (l) => l.attendanceRate < SF2_TARGET || (grades[l.lrn] && Object.values(grades[l.lrn]).some((g) => g < 75)),
@@ -200,9 +208,14 @@ export function TeacherView() {
                   <Save className="h-4 w-4" /> Save Grades
                 </Button>
               ) : (
-                <Button size="sm" variant="outline" onClick={() => setEditMode(true)}>
-                  Edit Grades
-                </Button>
+                <>
+                  <Button size="sm" variant="outline" onClick={() => setEditMode(true)}>
+                    Edit Grades
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setSubmitGradesOpen(true)}>
+                    <Send className="h-4 w-4" /> Submit to Registrar
+                  </Button>
+                </>
               )}
             </div>
           </CardHeader>
@@ -227,7 +240,7 @@ export function TeacherView() {
                     const avg = gpaVals.reduce((a, v) => a + v, 0) / gpaVals.length;
                     const atR = avg < 75 || l.attendanceRate < SF2_TARGET;
                     return (
-                      <TableRow key={l.lrn}>
+                      <TableRow key={l.lrn} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedStudent(l); setStudentProfileOpen(true); }}>
                         <TableCell className="font-mono text-xs text-muted-foreground">{l.lrn}</TableCell>
                         <TableCell className="font-medium whitespace-nowrap">{fullName(l)}</TableCell>
                         {subjects.map((s) => (
@@ -340,7 +353,7 @@ export function TeacherView() {
                 </div>
               ) : (
                 atRisk.map((l) => (
-                  <div key={l.lrn} className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+                  <div key={l.lrn} className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 cursor-pointer hover:bg-destructive/10 transition-colors" onClick={() => { setSelectedAtRisk(l); setAtRiskDetailOpen(true); }}>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{fullName(l)}</p>
                       <p className="text-xs text-muted-foreground">LRN: {l.lrn}</p>
@@ -502,6 +515,125 @@ export function TeacherView() {
                   </Button>
                 </>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Student Profile Dialog */}
+        <Dialog open={studentProfileOpen} onOpenChange={setStudentProfileOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Learner Profile</DialogTitle>
+            </DialogHeader>
+            {selectedStudent && (
+              <div className="space-y-4 py-2">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary text-2xl font-bold">
+                    {selectedStudent.firstName.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-base">{fullName(selectedStudent)}</p>
+                    <p className="text-sm text-muted-foreground">Grade 7 - Sampaguita</p>
+                    <p className="font-mono text-xs text-muted-foreground">LRN: {selectedStudent.lrn}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border bg-card p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Attendance</p>
+                    <p className={`text-xl font-bold ${selectedStudent.attendanceRate < SF2_TARGET ? "text-destructive" : "text-chart-2"}`}>{selectedStudent.attendanceRate.toFixed(1)}%</p>
+                  </div>
+                  <div className="rounded-lg border bg-card p-3 text-center">
+                    <p className="text-xs text-muted-foreground">GPA</p>
+                    <p className="text-xl font-bold">{selectedStudent.gpa}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-card p-3">
+                  <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Q3 Subject Grades</p>
+                  {Object.entries(grades[selectedStudent.lrn] ?? {}).map(([subj, grade]) => (
+                    <div key={subj} className="flex justify-between text-sm py-1.5 border-b last:border-0">
+                      <span className="text-muted-foreground">{subj}</span>
+                      <span className={`font-semibold ${(grade as number) < 75 ? "text-destructive" : ""}`}>{grade as number}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStudentProfileOpen(false)}>Close</Button>
+              <Button onClick={() => { toast.success(`Notification sent to parent of ${selectedStudent ? fullName(selectedStudent) : ""}`); setStudentProfileOpen(false); }}>
+                <Bell className="mr-2 h-4 w-4" /> Notify Parent
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Submit Grades Dialog */}
+        <Dialog open={submitGradesOpen} onOpenChange={setSubmitGradesOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Submit Grades to Registrar</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Section</span><span className="font-semibold">Grade 7 - Sampaguita</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Quarter</span><span className="font-semibold">3rd Quarter</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Students with grades</span><span className="font-semibold text-chart-2">{mySectionLearners.length} / {mySectionLearners.length}</span></div>
+              </div>
+              <p className="text-xs text-muted-foreground">Once submitted, grades will be locked and sent to the registrar's office. Make sure all grades are finalized before submitting.</p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSubmitGradesOpen(false)}>Cancel</Button>
+              <Button onClick={() => { toast.success("Grades submitted to registrar successfully"); setSubmitGradesOpen(false); }}>
+                <Send className="mr-2 h-4 w-4" /> Confirm Submission
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* At-Risk Learner Detail Dialog */}
+        <Dialog open={atRiskDetailOpen} onOpenChange={setAtRiskDetailOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>At-Risk Learner Detail</DialogTitle>
+            </DialogHeader>
+            {selectedAtRisk && (
+              <div className="space-y-4 py-2">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-2xl font-bold text-destructive">
+                    {selectedAtRisk.firstName.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-base">{fullName(selectedAtRisk)}</p>
+                    <p className="font-mono text-xs text-muted-foreground">LRN: {selectedAtRisk.lrn}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {selectedAtRisk.attendanceRate < SF2_TARGET && (
+                    <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                      <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-destructive">Low Attendance</p>
+                        <p className="text-xs text-muted-foreground">{selectedAtRisk.attendanceRate.toFixed(1)}% — below {SF2_TARGET}% SF2 target</p>
+                      </div>
+                    </div>
+                  )}
+                  {Object.values(grades[selectedAtRisk.lrn] ?? {}).some((g) => (g as number) < 75) && (
+                    <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                      <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-destructive">Failing Grade</p>
+                        <p className="text-xs text-muted-foreground">One or more subjects below passing mark (75)</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAtRiskDetailOpen(false)}>Close</Button>
+              <Button onClick={() => { toast.success(`Intervention flagged for ${selectedAtRisk ? fullName(selectedAtRisk) : ""}`); setAtRiskDetailOpen(false); }}>
+                <Bell className="mr-2 h-4 w-4" /> Notify Parent
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

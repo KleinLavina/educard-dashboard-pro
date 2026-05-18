@@ -43,7 +43,7 @@ function SettingsPage() {
     { id: "appearance", label: "Appearance", icon: Moon },
   ];
 
-  const visibleTabs = tabs.filter(t => !t.adminOnly || role === "principal");
+  const visibleTabs = tabs.filter(t => !t.adminOnly || role === "admin");
 
   return (
     <>
@@ -68,7 +68,7 @@ function SettingsPage() {
         </div>
 
         {/* School Info */}
-        {tab === "school" && role === "principal" && (
+        {tab === "school" && role === "admin" && (
           <SchoolInfoTab onSave={() => save("school")} saved={saved === "school"} />
         )}
 
@@ -78,12 +78,12 @@ function SettingsPage() {
         )}
 
         {/* School Calendar */}
-        {tab === "calendar" && role === "principal" && (
+        {tab === "calendar" && role === "admin" && (
           <CalendarTab onSave={() => save("calendar")} saved={saved === "calendar"} />
         )}
 
         {/* User Management */}
-        {tab === "users" && role === "principal" && (
+        {tab === "users" && role === "admin" && (
           <UsersTab />
         )}
 
@@ -93,7 +93,7 @@ function SettingsPage() {
         )}
 
         {/* Security */}
-        {tab === "security" && role === "principal" && (
+        {tab === "security" && role === "admin" && (
           <SecurityTab onSave={() => save("security")} saved={saved === "security"} />
         )}
 

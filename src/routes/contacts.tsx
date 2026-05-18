@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { useRole } from "@/lib/role-context";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   GraduationCap,
   Phone,
@@ -33,12 +38,28 @@ export const Route = createFileRoute("/contacts")({
 
 function ContactsPage() {
   const { role } = useRole();
+  const [messageOpen, setMessageOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<{ name: string; role: string; channel: string } | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [messageChannel, setMessageChannel] = useState("messenger");
 
   const handleCopyContact = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard`, {
       description: text,
     });
+  };
+
+  const handleSendMessage = () => {
+    if (!messageText.trim()) {
+      toast.error("Please type a message first");
+      return;
+    }
+    toast.success(`Message sent to ${selectedContact?.name}`, {
+      description: `Sent via ${messageChannel === "messenger" ? "Facebook Messenger" : messageChannel === "sms" ? "SMS" : "Email"}`,
+    });
+    setMessageOpen(false);
+    setMessageText("");
   };
 
   // Parent view - shows teacher contacts
@@ -149,11 +170,56 @@ function ContactsPage() {
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
+                  {/* Send Message */}
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedContact({ name: teacher.teacher, role: teacher.role, channel: teacher.messenger });
+                      setMessageChannel("messenger");
+                      setMessageOpen(true);
+                    }}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" /> Send Message
+                  </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
         </main>
+
+        <Dialog open={messageOpen} onOpenChange={setMessageOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Message {selectedContact?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+                <p className="text-xs text-muted-foreground">Recipient</p>
+                <p className="font-semibold">{selectedContact?.name}</p>
+                <p className="text-xs text-muted-foreground">{selectedContact?.role}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Channel</Label>
+                <select value={messageChannel} onChange={(e) => setMessageChannel(e.target.value)} className="w-full rounded-md border bg-background px-3 py-2 text-sm">
+                  <option value="messenger">Facebook Messenger (free)</option>
+                  <option value="sms">SMS (₱0.50/message)</option>
+                  <option value="email">Email</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Message</Label>
+                <Textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} placeholder="Type your message here..." rows={4} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setMessageOpen(false); setMessageText(""); }}>Cancel</Button>
+              <Button onClick={handleSendMessage}>
+                <MessageCircle className="mr-2 h-4 w-4" /> Send Message
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
@@ -245,7 +311,6 @@ function ContactsPage() {
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
-
                   {/* Email */}
                   <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 p-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -253,39 +318,73 @@ function ContactsPage() {
                         <Mail className="h-4 w-4 text-chart-3" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Email Address
-                        </p>
+                        <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">Email Address</p>
                         <p className="truncate text-sm font-medium">{parent.email}</p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCopyContact(parent.email, "Email address")}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => handleCopyContact(parent.email, "Email address")}>
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
+                  {/* Send Message */}
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedContact({ name: parent.parent, role: "Parent/Guardian", channel: parent.messenger });
+                      setMessageChannel("messenger");
+                      setMessageOpen(true);
+                    }}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" /> Send Message
+                  </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
         </main>
+
+        <Dialog open={messageOpen} onOpenChange={setMessageOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Message {selectedContact?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+                <p className="text-xs text-muted-foreground">Recipient</p>
+                <p className="font-semibold">{selectedContact?.name}</p>
+                <p className="text-xs text-muted-foreground">{selectedContact?.role}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Channel</Label>
+                <select value={messageChannel} onChange={(e) => setMessageChannel(e.target.value)} className="w-full rounded-md border bg-background px-3 py-2 text-sm">
+                  <option value="messenger">Facebook Messenger (recommended)</option>
+                  <option value="sms">SMS</option>
+                  <option value="email">Email</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Message</Label>
+                <Textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} placeholder="Type your message here..." rows={4} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setMessageOpen(false); setMessageText(""); }}>Cancel</Button>
+              <Button onClick={handleSendMessage}>
+                <MessageCircle className="mr-2 h-4 w-4" /> Send Message
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
 
-  // Default view for other roles
   return (
     <>
       <PageHeader title="Contacts" subtitle={`${SCHOOL_NAME} · SY ${SCHOOL_YEAR}`} />
       <main className="p-4 sm:p-6">
-        <Card>
-          <CardContent className="flex items-center justify-center p-12">
-            <p className="text-muted-foreground">Contact information not available for this role.</p>
-          </CardContent>
-        </Card>
+        <p className="text-sm text-muted-foreground">Contacts are not available for this role.</p>
       </main>
     </>
   );
