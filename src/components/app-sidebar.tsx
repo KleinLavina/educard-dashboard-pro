@@ -17,6 +17,7 @@ import {
   UserPlus,
   MessageCircle,
   BellRing,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -54,8 +55,10 @@ const navConfig: Record<
       { title: "Attendance", url: "/attendance", icon: CalendarCheck },
       { title: "Grades", url: "/grades", icon: GraduationCap },
       { title: "ID Cards", url: "/id-cards", icon: IdCard },
+      { title: "Reports", url: "/reports", icon: FileText },
     ],
     tools: [
+      { title: "Parent Contacts", url: "/contacts", icon: MessageCircle },
       { title: "Alerts", url: "/alerts", icon: Bell },
       { title: "Settings", url: "/settings", icon: Settings },
     ],
@@ -214,6 +217,14 @@ export function AppSidebar() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive("/reports")} tooltip="Reports">
+                          <Link to="/reports" className="flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            <span>Reports</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </CollapsibleContent>
@@ -262,6 +273,14 @@ export function AppSidebar() {
               <SidebarGroupLabel className="font-ui uppercase tracking-widest">Tools</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/contacts")} tooltip="Parent Contacts">
+                      <Link to="/contacts" className="flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4" />
+                        <span>Parent Contacts</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={isActive("/alerts")} tooltip="Alerts">
                       <Link to="/alerts" className="flex items-center gap-2">
