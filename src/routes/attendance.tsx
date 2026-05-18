@@ -23,7 +23,95 @@ function AttendancePage() {
   const { role } = useRole();
   if (role === "teacher") return <TeacherRollCall />;
   if (role === "student") return <StudentAttendance />;
+  if (role === "parent")  return <ParentAttendance />;
   return <PrincipalSF2 />;
+}
+
+/* ─── Parent: children attendance summary ─────────────────── */
+function ParentAttendance() {
+  const juan = allLearners.find((l) => l.learner.lrn === "136728140987")!;
+  const bea  = allLearners.find((l) => l.learner.lrn === "136728140989")!;
+  const children = [
+    { label: "Juan M. Dela Cruz", learner: juan.learner, record: juan },
+    { label: "Bea L. Soriano",   learner: bea.learner,  record: bea  },
+  ];
+
+  const weeks = [
+    { week: "Apr 14–18", juanDays: ["P","P","P","P","P"], beaDays: ["P","P","P","P","P"] },
+    { week: "Apr 21–25", juanDays: ["P","P","P","P","P"], beaDays: ["P","P","P","P","P"] },
+    { week: "Apr 28–May 2", juanDays: ["P","A","P","P","P"], beaDays: ["P","P","P","P","P"] },
+    { week: "May 5–9",   juanDays: ["P","P","P","P","P"], beaDays: ["P","P","P","P","P"] },
+    { week: "May 12–16", juanDays: ["P","P","P","P","P"], beaDays: ["P","P","A","P","P"] },
+  ];
+
+  return (
+    <>
+      <PageHeader title="Children's Attendance" subtitle={`Family Portal · Grade 7 Sampaguita · SY ${SCHOOL_YEAR}`} />
+      <main className="space-y-6 p-4 sm:p-6">
+        {/* Child summary cards */}
+        <section className="grid gap-4 sm:grid-cols-2">
+          {children.map((c) => {
+            const rate = c.learner.attendanceRate;
+            const ok = rate >= SF2_TARGET;
+            return (
+              <Card key={c.learner.lrn} className={`border-border/60 ${!ok ? "border-destructive/30" : ""}`}>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <Users className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{c.label}</p>
+                        <p className="text-xs text-muted-foreground">{c.record.sectionLabel}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-2xl font-bold ${ok ? "text-chart-2" : "text-destructive"}`}>{rate.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">SF2 target {SF2_TARGET}%</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${rate}%`, background: ok ? "var(--gradient-accent)" : "var(--color-destructive)" }} />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </section>
+
+        {/* Weekly calendar comparison */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Weekly Attendance Log</CardTitle>
+            <p className="text-xs text-muted-foreground">3rd Quarter · {SCHOOL_NAME}</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {weeks.map((w) => (
+              <div key={w.week}>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">{w.week}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { name: "Juan", days: w.juanDays },
+                    { name: "Bea",  days: w.beaDays  },
+                  ].map((c) => (
+                    <div key={c.name} className="flex items-center gap-2">
+                      <span className="w-10 shrink-0 text-xs font-medium text-muted-foreground">{c.name}</span>
+                      <div className="flex gap-1">
+                        {["M","T","W","Th","F"].map((day, i) => (
+                          <div key={day} className={`flex h-7 w-7 items-center justify-center rounded-md text-[10px] font-semibold ${c.days[i] === "P" ? "bg-chart-2/15 text-chart-2" : "bg-destructive/10 text-destructive"}`}>{c.days[i]}</div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </main>
+    </>
+  );
 }
 
 /* ─── Principal: SF2 section matrix ─────────────────────── */

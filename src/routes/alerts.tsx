@@ -152,9 +152,56 @@ function AlertFeed({ items }: { items: AlertItem[] }) {
 function AlertsPage() {
   const { role } = useRole();
   
-  if (role === "principal") return <PrincipalAlerts />;
+  if (role === "admin")   return <PrincipalAlerts />;
   if (role === "teacher") return <TeacherAlerts />;
+  if (role === "parent")  return <ParentAlerts />;
   return <StudentAlerts />;
+}
+
+/* ─── Parent: family notification feed ────────────────────── */
+const PARENT_ALERTS: AlertItem[] = [
+  { id: 1, icon: CalendarCheck, title: "Juan: Attendance confirmed — May 10", text: "Juan M. Dela Cruz was scanned in at 7:38 AM. He is marked Present for today.", time: "Today, 7:38 AM", tone: "ok", tag: "Attendance" },
+  { id: 2, icon: GraduationCap, title: "Juan: Math Q3 grade posted — 92", text: "Ms. Aurora Aquino posted Juan's 3rd Quarter Math grade: 92. General average is currently 91.7.", time: "Today, 9:00 AM", tone: "ok", tag: "Grade" },
+  { id: 3, icon: CalendarCheck, title: "Bea: Attendance confirmed — May 10", text: "Bea L. Soriano was scanned in at 7:41 AM. She is marked Present for today.", time: "Today, 7:41 AM", tone: "ok", tag: "Attendance" },
+  { id: 4, icon: Bell, title: "SF2 review on May 15", text: "Ms. Aquino will conduct the 3rd Quarter SF2 attendance review for Grade 7-Sampaguita on May 15. Juan's current rate: 96.4%, Bea's: 97.1%.", time: "Yesterday", tone: "info", tag: "SF2" },
+  { id: 5, icon: MessageCircle, title: "Message from Ms. Aquino", text: "Reminder to parents: Science project is due this Friday, May 14. Please remind your child to submit via Google Classroom.", time: "Yesterday", tone: "info", tag: "Message" },
+  { id: 6, icon: Star, title: "Juan ranked #1 in Filipino", text: "Congratulations! Your child Juan ranked 1st in Filipino this quarter with a grade of 94.", time: "2 days ago", tone: "ok", tag: "Achievement" },
+  { id: 7, icon: GraduationCap, title: "Bea: Science Q3 grade posted — 90", text: "Bea's 3rd Quarter Science grade has been posted: 90. Excellent performance!", time: "2 days ago", tone: "ok", tag: "Grade" },
+];
+
+function ParentAlerts() {
+  const items = PARENT_ALERTS;
+  const critCount = items.filter((a) => a.tone === "critical" || a.tone === "warn").length;
+
+  return (
+    <>
+      <PageHeader title="Notifications" subtitle={`Family Portal · Mr. & Mrs. Dela Cruz`} />
+      <main className="space-y-6 p-4 sm:p-6">
+        <section className="grid grid-cols-3 gap-4">
+          {[
+            { label: "Total", value: items.length, accent: "text-foreground" },
+            { label: "Action Needed", value: critCount, accent: critCount > 0 ? "text-destructive" : "text-chart-2" },
+            { label: "Children Updates", value: items.filter(a => a.tone === "ok").length, accent: "text-chart-2" },
+          ].map((m) => (
+            <Card key={m.label} className="border-border/60">
+              <CardContent className="p-5">
+                <p className="font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">{m.label}</p>
+                <p className={`mt-1 text-2xl font-semibold ${m.accent}`}>{m.value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-3">
+            <CardTitle className="text-base">Family Notifications</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AlertFeed items={items} />
+          </CardContent>
+        </Card>
+      </main>
+    </>
+  );
 }
 
 /* ─── Principal: Comprehensive Alert Management ─────────── */

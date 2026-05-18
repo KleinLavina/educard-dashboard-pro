@@ -26,7 +26,113 @@ function GradesPage() {
   const { role } = useRole();
   if (role === "teacher") return <TeacherGradeBook />;
   if (role === "student") return <StudentTranscript />;
+  if (role === "parent")  return <ParentGrades />;
   return <PrincipalGradeOverview />;
+}
+
+/* ─── Parent: children grades overview ────────────────────── */
+const PARENT_GRADES = {
+  juan: [
+    { subject: "Math",     q1: 89, q2: 91, q3: 92 },
+    { subject: "Science",  q1: 87, q2: 88, q3: 90 },
+    { subject: "English",  q1: 85, q2: 87, q3: 88 },
+    { subject: "Filipino", q1: 91, q2: 93, q3: 94 },
+    { subject: "AP",       q1: 88, q2: 90, q3: 91 },
+    { subject: "MAPEH",    q1: 93, q2: 94, q3: 95 },
+  ],
+  bea: [
+    { subject: "Math",     q1: 86, q2: 88, q3: 90 },
+    { subject: "Science",  q1: 89, q2: 91, q3: 90 },
+    { subject: "English",  q1: 85, q2: 86, q3: 88 },
+    { subject: "Filipino", q1: 88, q2: 90, q3: 91 },
+    { subject: "AP",       q1: 85, q2: 88, q3: 89 },
+    { subject: "MAPEH",    q1: 90, q2: 92, q3: 94 },
+  ],
+};
+
+function ParentGrades() {
+  const [activeChild, setActiveChild] = useState<"juan" | "bea">("juan");
+  const grades = PARENT_GRADES[activeChild];
+  const avg = grades.reduce((a, s) => a + (s.q1 + s.q2 + s.q3) / 3, 0) / grades.length;
+
+  return (
+    <>
+      <PageHeader title="Children's Grades" subtitle={`Family Portal · Grade 7 Sampaguita · SY ${SCHOOL_YEAR}`} />
+      <main className="space-y-6 p-4 sm:p-6">
+        {/* Child selector */}
+        <div className="flex gap-2">
+          {(["juan", "bea"] as const).map((c) => (
+            <button
+              key={c}
+              onClick={() => setActiveChild(c)}
+              className={`rounded-xl px-5 py-2 text-sm font-semibold transition-colors ${activeChild === c ? "text-primary-foreground shadow-sm" : "border bg-card text-muted-foreground hover:bg-muted"}`}
+              style={activeChild === c ? { background: "linear-gradient(135deg, oklch(0.60 0.15 150), oklch(0.75 0.12 170))" } : {}}
+            >
+              {c === "juan" ? "Juan M. Dela Cruz" : "Bea L. Soriano"}
+            </button>
+          ))}
+        </div>
+
+        {/* Summary */}
+        <section className="grid grid-cols-3 gap-4">
+          {[
+            { label: "General Avg (Q3)", value: avg.toFixed(1), accent: "text-chart-1" },
+            { label: "With Honors",      value: avg >= 90 ? "Yes" : "No", accent: avg >= 90 ? "text-chart-2" : "text-muted-foreground" },
+            { label: "Subjects",         value: grades.length, accent: "text-chart-3" },
+          ].map((m) => (
+            <Card key={m.label} className="border-border/60">
+              <CardContent className="p-5">
+                <p className="font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">{m.label}</p>
+                <p className={`mt-1 text-2xl font-semibold ${m.accent}`}>{m.value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+
+        {/* Grades table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {activeChild === "juan" ? "Juan M. Dela Cruz" : "Bea L. Soriano"} — Academic Transcript
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">Grade 7 - Sampaguita · {SCHOOL_NAME}</p>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    {["Subject", "Q1", "Q2", "Q3 (Current)", "Avg", "Remarks"].map((h) => (
+                      <th key={h} className={`pb-3 font-ui text-xs uppercase tracking-wide text-muted-foreground ${h === "Subject" ? "text-left" : "text-center"}`}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {grades.map((s) => {
+                    const cellAvg = Math.round((s.q1 + s.q2 + s.q3) / 3);
+                    return (
+                      <tr key={s.subject} className="hover:bg-muted/30">
+                        <td className="py-3 font-semibold">{s.subject}</td>
+                        <td className="py-3 text-center text-muted-foreground">{s.q1}</td>
+                        <td className="py-3 text-center text-muted-foreground">{s.q2}</td>
+                        <td className="py-3 text-center font-bold">{s.q3}</td>
+                        <td className={`py-3 text-center font-semibold ${cellAvg >= 90 ? "text-chart-2" : cellAvg < 75 ? "text-destructive" : ""}`}>{cellAvg}</td>
+                        <td className="py-3 text-center">
+                          <Badge variant={cellAvg >= 90 ? "default" : cellAvg < 75 ? "destructive" : "secondary"}>
+                            {cellAvg >= 90 ? "With Honors" : cellAvg < 75 ? "Failed" : "Passed"}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </>
+  );
 }
 
 /* ─── Principal: school-wide overview ────────────────────── */

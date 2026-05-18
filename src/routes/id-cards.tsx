@@ -25,7 +25,57 @@ function IDCardsPage() {
   const { role } = useRole();
   if (role === "student") return <StudentIDCard />;
   if (role === "teacher") return <TeacherIDCards />;
+  if (role === "parent")  return <ParentIDCards />;
   return <PrincipalIDCards />;
+}
+
+/* ─── Parent: children's ID cards ─────────────────────────── */
+function ParentIDCards() {
+  const juan = allLearners.find((l) => l.learner.lrn === "136728140987")!;
+  const bea  = allLearners.find((l) => l.learner.lrn === "136728140989")!;
+  const children = [juan, bea];
+
+  return (
+    <>
+      <PageHeader title="Children's ID Cards" subtitle={`Family Portal · Mr. & Mrs. Dela Cruz`} />
+      <main className="space-y-6 p-4 sm:p-8 flex flex-col items-center">
+        <p className="self-start text-sm text-muted-foreground">Your children's official Learner ID cards. Scan the QR code for attendance verification.</p>
+        <div className="grid w-full max-w-2xl gap-6 sm:grid-cols-2">
+          {children.map((c) => {
+            const l = c.learner;
+            return (
+              <div key={l.lrn} className="w-full overflow-hidden rounded-2xl border shadow-sm">
+                <div className="px-5 py-4 text-primary-foreground" style={{ background: "linear-gradient(135deg, oklch(0.60 0.15 150), oklch(0.75 0.12 170))" }}>
+                  <p className="font-ui text-[10px] uppercase tracking-widest opacity-80">{SCHOOL_NAME}</p>
+                  <p className="text-xs font-semibold opacity-90">Learner ID · SY {SCHOOL_YEAR}</p>
+                </div>
+                <div className="flex gap-4 p-5">
+                  <div className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                    <Users className="h-8 w-8" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold">{fullName(l)}</p>
+                    <p className="text-sm text-muted-foreground">{c.sectionLabel}</p>
+                    <p className="text-sm text-muted-foreground">{c.department.label}</p>
+                    <div className="mt-2">
+                      <p className="font-ui text-[9px] uppercase tracking-wider text-muted-foreground">LRN</p>
+                      <p className="font-mono text-sm font-bold">{l.lrn}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between border-t bg-muted/30 px-5 py-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-lg border bg-background">
+                    <QrCode className="h-9 w-9" />
+                  </div>
+                  <Button size="sm" variant="outline"><Printer className="h-4 w-4" /> Print</Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+    </>
+  );
 }
 
 /* ─── Mini ID card component ─────────────────────────────── */

@@ -49,7 +49,88 @@ function StudentsPage() {
   const { role } = useRole();
   if (role === "student") return <StudentProfile />;
   if (role === "teacher") return <TeacherRoster />;
+  if (role === "parent")  return <ParentChildren />;
   return <AdminRoster />;
+}
+
+/* ─── Parent: children overview ──────────────────────────── */
+function ParentChildren() {
+  const juan = allLearners.find((l) => l.learner.lrn === "136728140987")!;
+  const bea  = allLearners.find((l) => l.learner.lrn === "136728140989")!;
+  const children = [juan, bea];
+  const [active, setActive] = useState<string>(juan.learner.lrn);
+  const selected = children.find((c) => c.learner.lrn === active)!;
+  const classmates = selected.section.learners.filter((l) => l.lrn !== active);
+
+  return (
+    <>
+      <PageHeader title="My Children" subtitle={`Family Portal · Mr. & Mrs. Dela Cruz · SY ${SCHOOL_YEAR}`} />
+      <main className="space-y-6 p-4 sm:p-6">
+        {/* Child tabs */}
+        <div className="flex gap-2">
+          {children.map((c) => (
+            <button
+              key={c.learner.lrn}
+              onClick={() => setActive(c.learner.lrn)}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${active === c.learner.lrn ? "text-primary-foreground shadow-sm" : "border bg-card text-muted-foreground hover:bg-muted"}`}
+              style={active === c.learner.lrn ? { background: "linear-gradient(135deg, oklch(0.60 0.15 150), oklch(0.75 0.12 170))" } : {}}
+            >
+              {c.learner.firstName} {c.learner.lastName}
+            </button>
+          ))}
+        </div>
+
+        {/* Child profile card */}
+        <Card className="overflow-hidden">
+          <div className="h-24 w-full" style={{ background: "linear-gradient(135deg, oklch(0.60 0.15 150), oklch(0.75 0.12 170))" }} />
+          <CardContent className="relative pt-0">
+            <div className="-mt-10 flex items-end gap-4 pb-4">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-background bg-muted shadow-md text-muted-foreground">
+                <Users className="h-9 w-9" />
+              </div>
+              <div className="flex-1 min-w-0 pb-1">
+                <h2 className="text-xl font-bold">{fullName(selected.learner)}</h2>
+                <p className="text-sm text-muted-foreground">{selected.sectionLabel} · SY {SCHOOL_YEAR}</p>
+              </div>
+              <Badge variant={selected.status === "At Risk" ? "destructive" : "secondary"} className="mb-1">{selected.status}</Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-4 border-t pt-4 sm:grid-cols-4">
+              {[
+                { label: "LRN", value: selected.learner.lrn, mono: true },
+                { label: "GPA (Q3)", value: selected.learner.gpa.toString() },
+                { label: "Attendance", value: `${selected.learner.attendanceRate.toFixed(1)}%` },
+                { label: "Adviser", value: selected.section.adviser.split(" ").slice(-1)[0] },
+              ].map((f) => (
+                <div key={f.label}>
+                  <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">{f.label}</p>
+                  <p className={`mt-0.5 text-sm font-semibold ${f.mono ? "font-mono" : ""}`}>{f.value}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Classmates */}
+        <Card>
+          <CardHeader><CardTitle className="text-sm">Classmates in {selected.section.name}</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {classmates.map((m) => (
+              <div key={m.lrn} className="flex items-center gap-3 rounded-lg border bg-card p-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <Users className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{fullName(m)}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{m.lrn}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">GPA {m.gpa}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </main>
+    </>
+  );
 }
 
 /* ─── Admin: full roster with enrollment management ──────── */
