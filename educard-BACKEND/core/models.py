@@ -2,6 +2,7 @@
 EduCard Pro - Django Models
 Full schema based on EduCardPro_Detailed_Plan.txt (all 8 phases)
 """
+from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinLengthValidator, MaxLengthValidator, MinValueValidator, MaxValueValidator
@@ -332,10 +333,14 @@ class Grade(models.Model):
             return None
         
         weights = self.subject
+        qw = Decimal(str(weights.quarter_weight_quiz))
+        ew = Decimal(str(weights.quarter_weight_exam))
+        aw = Decimal(str(weights.quarter_weight_activity))
+        hundred = Decimal('100')
         grade = (
-            (self.quiz_score * weights.quarter_weight_quiz / 100) +
-            (self.exam_score * weights.quarter_weight_exam / 100) +
-            (self.activity_score * weights.quarter_weight_activity / 100)
+            (self.quiz_score * qw / hundred) +
+            (self.exam_score * ew / hundred) +
+            (self.activity_score * aw / hundred)
         )
         return round(grade, 2)
     
