@@ -515,7 +515,7 @@ function TeacherGradeBook() {
               </div>
               <div className="mt-4 grid grid-cols-3 gap-4">
                 {["Q1", "Q2", "Q3"].map((q, i) => {
-                  const avg = quarterComparison.reduce((sum, s) => sum + s[q as keyof typeof s] as number, 0) / quarterComparison.length;
+                  const avg = quarterComparison.reduce((sum, s) => sum + (s[q as keyof typeof s] as number), 0) / quarterComparison.length;
                   return (
                     <div key={q} className="text-center p-3 rounded-lg border">
                       <p className="text-xs text-muted-foreground mb-1">{q} Average</p>

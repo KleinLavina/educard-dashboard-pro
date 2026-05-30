@@ -82,12 +82,12 @@ export class ApiError extends Error {
 
 // ─── Typed helpers ────────────────────────────────────────────────────────────
 
-const get  = <T>(path: string) => request<T>(path)
-const post = <T>(path: string, body: unknown) =>
+const get   = <T>(path: string) => request<T>(path)
+const post  = <T>(path: string, body: unknown) =>
   request<T>(path, { method: 'POST', body: JSON.stringify(body) })
 const patch = <T>(path: string, body: unknown) =>
   request<T>(path, { method: 'PATCH', body: JSON.stringify(body) })
-const del  = <T>(path: string) => request<T>(path, { method: 'DELETE' })
+const del   = <T>(path: string) => request<T>(path, { method: 'DELETE' })
 
 // ─── Types (mirror Django serializers) ───────────────────────────────────────
 
@@ -159,6 +159,35 @@ export interface Learner {
   barcode_active: boolean
   graduation_status: 'active' | 'candidate' | 'confirmed' | 'archived'
   photo_path: string | null
+  // parent_account removed — use LearnerParent through-table
+}
+
+/** Fix 1: Multi-parent support — replaces single parent_account FK */
+export interface LearnerParent {
+  id: number
+  learner: number
+  learner_name: string
+  learner_lrn: string
+  parent: number
+  parent_name: string
+  relationship: 'Mother' | 'Father' | 'Guardian'
+  is_primary_contact: boolean
+  created_at: string
+}
+
+export interface Subject {
+  id: number
+  name: string
+  section: number
+  section_label: string
+  teacher: number | null
+  teacher_name: string | null
+  /** Fix 3: FK to SchoolYearConfig — enables historical subject records */
+  school_year: number | null
+  school_year_label: string | null
+  quarter_weight_quiz: number
+  quarter_weight_exam: number
+  quarter_weight_activity: number
 }
 
 export interface Grade {
@@ -186,6 +215,9 @@ export interface AttendanceRecord {
   time_out_morning: string | null
   time_in_afternoon: string | null
   time_out_afternoon: string | null
+  /** Fix 4: FK to SchoolCalendar — validates this date is a school day */
+  calendar_entry: number | null
+  calendar_entry_type: 'school_day' | 'holiday' | 'suspension' | null
 }
 
 export interface IDPrintQueueItem {
@@ -256,6 +288,9 @@ export interface DashboardStats {
 
 export interface SchoolSettings {
   id: number
+  /** Fix 2: FK to Tenant — each school has its own settings row */
+  tenant: number | null
+  tenant_name: string | null
   school_name: string
   school_year: string
   school_logo_path: string | null
@@ -288,6 +323,18 @@ export interface AdminTask {
   learner_name: string | null
   due_date: string | null
   created_at: string
+}
+
+/** Fix 5: GraduationNotification uses FK (not OneToOne) — supports retries */
+export interface GraduationNotification {
+  id: number
+  learner: number
+  learner_name: string
+  channel: 'messenger' | 'sms'
+  status: 'sent' | 'failed' | 'pending'
+  message: string
+  sent_at: string | null
+  error_message: string | null
 }
 
 export interface PaginatedResponse<T> {
@@ -360,6 +407,17 @@ export const api = {
     notifications: (id: number) => get<NotificationRecord[]>(`/learners/${id}/notifications/`),
   },
 
+  // ── Learner Parents (Fix 1: multi-parent through-table) ───────────────────
+  learnerParents: {
+    list: (learnerId?: number) =>
+      get<LearnerParent[]>(`/learner-parents/${learnerId ? '?learner=' + learnerId : ''}`),
+    listByParent: (parentId: number) =>
+      get<LearnerParent[]>(`/learner-parents/?parent=${parentId}`),
+    create: (data: { learner: number; parent: number; relationship: string; is_primary_contact?: boolean }) =>
+      post<LearnerParent>('/learner-parents/', data),
+    remove: (id: number) => del<void>(`/learner-parents/${id}/`),
+  },
+
   // ── Grades ────────────────────────────────────────────────────────────────
   grades: {
     list: (params?: { learner?: number; subject?: number; quarter?: number }) => {
@@ -373,6 +431,16 @@ export const api = {
       id ? patch<Grade>(`/grades/${id}/`, data) : post<Grade>('/grades/', data),
     atRisk: (sectionId?: number) =>
       get<Learner[]>(`/grades/at_risk/${sectionId ? '?section=' + sectionId : ''}`),
+  },
+
+  // ── Subjects (Fix 3: includes school_year FK) ─────────────────────────────
+  subjects: {
+    list: (params?: { section?: number; school_year?: number }) => {
+      const q = new URLSearchParams()
+      if (params?.section) q.set('section', String(params.section))
+      if (params?.school_year) q.set('school_year', String(params.school_year))
+      return get<Subject[]>(`/subjects/${q.toString() ? '?' + q : ''}`)
+    },
   },
 
   // ── Attendance ────────────────────────────────────────────────────────────
@@ -442,7 +510,7 @@ export const api = {
       get<unknown[]>(`/report-cards/${learnerId ? '?learner=' + learnerId : ''}`),
   },
 
-  // ── Settings ──────────────────────────────────────────────────────────────
+  // ── Settings (Fix 2: includes tenant FK) ──────────────────────────────────
   settings: {
     get: () => get<SchoolSettings>('/settings/'),
     update: (data: Partial<SchoolSettings>) => patch<SchoolSettings>('/settings/', data),
@@ -465,11 +533,13 @@ export const api = {
     list: () => get<unknown[]>('/teacher-contacts/'),
   },
 
-  // ── Graduation ────────────────────────────────────────────────────────────
+  // ── Graduation (Fix 5: notifications now return array, not single record) ─
   graduation: {
     candidates: () => get<Learner[]>('/graduation/candidates/'),
     confirm: (id: number) => post<Learner>(`/graduation/${id}/confirm/`, {}),
     alumni: () => get<Learner[]>('/graduation/alumni/'),
+    notifications: (learnerId?: number) =>
+      get<GraduationNotification[]>(`/graduation-notifications/${learnerId ? '?learner=' + learnerId : ''}`),
   },
 
   // ── Absence Alerts ────────────────────────────────────────────────────────

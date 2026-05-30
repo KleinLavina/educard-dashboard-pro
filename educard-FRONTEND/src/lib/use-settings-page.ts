@@ -26,6 +26,8 @@ export function useSettingsPage() {
         smsEnabled:    settingsQuery.data.sms_enabled,
         smsCredits:    settingsQuery.data.sms_credits_remaining,
         plan:          settingsQuery.data.plan,
+        tenant:        settingsQuery.data.tenant ?? null,
+        tenantName:    settingsQuery.data.tenant_name ?? null,
         quarters: [
           { label: 'Q1', start: settingsQuery.data.grading_period_1_start ?? schoolCalendar.quarters[0].start, end: settingsQuery.data.grading_period_1_end ?? schoolCalendar.quarters[0].end },
           { label: 'Q2', start: settingsQuery.data.grading_period_2_start ?? schoolCalendar.quarters[1].start, end: settingsQuery.data.grading_period_2_end ?? schoolCalendar.quarters[1].end },
@@ -45,6 +47,8 @@ export function useSettingsPage() {
         smsEnabled:    true,
         smsCredits:    0,
         plan:          'basic',
+        tenant:        null,
+        tenantName:    null,
         quarters:      schoolCalendar.quarters,
       }
 

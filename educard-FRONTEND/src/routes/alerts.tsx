@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { SCHOOL_NAME, SCHOOL_YEAR, notificationHistory, parentProfiles, allLearners, fullName } from "@/lib/school-data";
+import { SCHOOL_NAME, SCHOOL_YEAR, notificationHistory, parentProfiles, getLearnerLrnsForParent, allLearners, fullName } from "@/lib/school-data";
 import { useRole } from "@/lib/role-context";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -539,11 +539,14 @@ function SendAlertDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
               <SelectContent>
                 <SelectItem value="all">All Parents (Section)</SelectItem>
                 <SelectItem value="at-risk">Parents of At-Risk Students</SelectItem>
-                {parentProfiles.map(parent => (
-                  <SelectItem key={parent.id} value={parent.id}>
-                    {parent.name} ({parent.linkedLrns.length} {parent.linkedLrns.length === 1 ? "child" : "children"})
-                  </SelectItem>
-                ))}
+                {parentProfiles.map(parent => {
+                    const childCount = getLearnerLrnsForParent(parent.id).length;
+                    return (
+                      <SelectItem key={parent.id} value={parent.id}>
+                        {parent.name} ({childCount} {childCount === 1 ? "child" : "children"})
+                      </SelectItem>
+                    );
+                  })}
               </SelectContent>
             </Select>
           </div>

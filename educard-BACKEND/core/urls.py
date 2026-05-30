@@ -10,7 +10,7 @@ from .views import (
     LoginView, MeView,
     DashboardStatsView, DashboardDepartmentsView,
     DepartmentViewSet, GradeLevelViewSet, SectionViewSet,
-    LearnerViewSet, SubjectViewSet, GradeViewSet, GradeAuditLogViewSet,
+    LearnerViewSet, LearnerParentViewSet, SubjectViewSet, GradeViewSet, GradeAuditLogViewSet,
     SchoolCalendarViewSet, AttendanceRecordViewSet,
     IDTemplateViewSet, IDCardElementPositionViewSet, IDPrintQueueViewSet,
     NotificationRecordViewSet, NotificationPreferenceViewSet,
@@ -30,10 +30,11 @@ router.register(r'grade-levels',  GradeLevelViewSet,   basename='gradelevel')
 router.register(r'sections',      SectionViewSet,      basename='section')
 
 # Learners & academics
-router.register(r'learners',      LearnerViewSet,      basename='learner')
-router.register(r'subjects',      SubjectViewSet,      basename='subject')
-router.register(r'grades',        GradeViewSet,        basename='grade')
-router.register(r'grade-audit',   GradeAuditLogViewSet, basename='gradeaudit')
+router.register(r'learners',       LearnerViewSet,       basename='learner')
+router.register(r'learner-parents', LearnerParentViewSet, basename='learnerparent')
+router.register(r'subjects',       SubjectViewSet,       basename='subject')
+router.register(r'grades',         GradeViewSet,         basename='grade')
+router.register(r'grade-audit',    GradeAuditLogViewSet, basename='gradeaudit')
 
 # Attendance
 router.register(r'calendar',      SchoolCalendarViewSet, basename='calendar')

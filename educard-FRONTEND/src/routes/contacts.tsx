@@ -96,7 +96,7 @@ function ContactsPage() {
                   <div className="mt-2">
                     <p className="text-sm text-muted-foreground">{teacher.subject}</p>
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {teacher.children.map((child) => (
+                      {(teacher.children ?? []).map((child) => (
                         <Badge key={child} variant="outline" className="text-[10px]">
                           {child}
                         </Badge>

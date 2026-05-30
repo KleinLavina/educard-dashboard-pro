@@ -92,9 +92,9 @@ export function ParentMyChildrenView() {
 
   // Attendance statistics
   const attendanceStats = {
-    present: childAttendance.filter((a) => a.status === "Present").length,
-    absent: childAttendance.filter((a) => a.status === "Absent").length,
-    late: childAttendance.filter((a) => a.status === "Late").length,
+    present: childAttendance.filter((a) => a.status === "present").length,
+    absent: childAttendance.filter((a) => a.status === "absent").length,
+    late: childAttendance.filter((a) => a.status === "late").length,
     total: childAttendance.length,
     rate: activeChild.learner.attendanceRate,
   };
@@ -103,7 +103,7 @@ export function ParentMyChildrenView() {
   const conductStats = {
     positive: childConduct.filter((c) => c.type === "Positive").length,
     neutral: childConduct.filter((c) => c.type === "Note").length,
-    negative: childConduct.filter((c) => c.type === "Negative").length,
+    negative: childConduct.filter((c) => c.type === "Warning").length,
     total: childConduct.length,
   };
 
@@ -500,9 +500,9 @@ export function ParentMyChildrenView() {
                         <TableCell>
                           <Badge
                             variant={
-                              record.status === "Present"
+                              record.status === "present"
                                 ? "secondary"
-                                : record.status === "Absent"
+                                : record.status === "absent"
                                 ? "destructive"
                                 : "outline"
                             }
@@ -512,9 +512,7 @@ export function ParentMyChildrenView() {
                         </TableCell>
                         <TableCell>{record.timeIn || "—"}</TableCell>
                         <TableCell>{record.timeOut || "—"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {record.notes || "—"}
-                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">—</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -583,7 +581,7 @@ export function ParentMyChildrenView() {
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
                           record.type === "Positive"
                             ? "bg-green-100 dark:bg-green-950"
-                            : record.type === "Negative"
+                            : record.type === "Warning"
                             ? "bg-red-100 dark:bg-red-950"
                             : "bg-blue-100 dark:bg-blue-950"
                         }`}
@@ -591,7 +589,7 @@ export function ParentMyChildrenView() {
                         {record.type === "Positive" && (
                           <Award className="h-5 w-5 text-green-600 dark:text-green-400" />
                         )}
-                        {record.type === "Negative" && (
+                        {record.type === "Warning" && (
                           <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
                         )}
                         {record.type === "Note" && (
@@ -605,7 +603,7 @@ export function ParentMyChildrenView() {
                             variant={
                               record.type === "Positive"
                                 ? "secondary"
-                                : record.type === "Negative"
+                                : record.type === "Warning"
                                 ? "destructive"
                                 : "outline"
                             }
@@ -614,7 +612,7 @@ export function ParentMyChildrenView() {
                           </Badge>
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          {record.date} · {record.teacher}
+                          {record.date} · {record.recordedBy}
                         </p>
                       </div>
                     </div>

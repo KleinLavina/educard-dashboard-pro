@@ -16,7 +16,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     User, ParentProfile, TeacherContact,
     Department, GradeLevel, Section,
-    Learner, LearnerSectionHistory,
+    Learner, LearnerParent, LearnerSectionHistory,
     Subject, Grade, GradeAuditLog, BulkImportJob,
     SchoolCalendar, AttendanceRecord,
     IDTemplate, IDPrintQueue, IDCardElementPosition,
@@ -35,7 +35,7 @@ from .serializers import (
     ParentProfileSerializer, TeacherContactSerializer,
     DepartmentSerializer, GradeLevelSerializer, SectionSerializer,
     LearnerListSerializer, LearnerDetailSerializer, LearnerCreateSerializer,
-    LearnerSectionHistorySerializer,
+    LearnerSectionHistorySerializer, LearnerParentSerializer,
     SubjectSerializer, GradeSerializer, GradeAuditLogSerializer,
     SchoolCalendarSerializer, AttendanceRecordSerializer, BarcodeScanSerializer,
     IDTemplateSerializer, IDCardElementPositionSerializer, IDPrintQueueSerializer,
@@ -212,10 +212,7 @@ class LearnerViewSet(viewsets.ModelViewSet):
     filterset_fields = ['section', 'section__grade_level', 'graduation_status', 'sex']
 
     def get_queryset(self):
-        qs = Learner.objects.select_related(
-            'section__grade_level__department', 'parent_account'
-        )
-        # Teachers only see their assigned sections
+        qs = Learner.objects.select_related('section__grade_level__department')
         user = self.request.user
         if user.role == 'teacher':
             assigned = TeacherSectionAssignment.objects.filter(
@@ -225,7 +222,11 @@ class LearnerViewSet(viewsets.ModelViewSet):
         elif user.role == 'student':
             qs = qs.filter(user_account=user)
         elif user.role == 'parent':
-            qs = qs.filter(parent_account=user)
+            # Use LearnerParent through-table
+            learner_ids = LearnerParent.objects.filter(
+                parent=user
+            ).values_list('learner_id', flat=True)
+            qs = qs.filter(id__in=learner_ids)
         return qs
 
     def get_serializer_class(self):
@@ -634,6 +635,25 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# LEARNER PARENTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+class LearnerParentViewSet(viewsets.ModelViewSet):
+    serializer_class = LearnerParentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['learner', 'parent', 'relationship']
+
+    def get_queryset(self):
+        qs = LearnerParent.objects.select_related('learner', 'parent')
+        user = self.request.user
+        if user.role == 'parent':
+            qs = qs.filter(parent=user)
+        elif user.role == 'student':
+            qs = qs.filter(learner__user_account=user)
+        return qs
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # TEACHER CONTACTS (parent portal)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -644,11 +664,10 @@ class TeacherContactViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        # Parents only see contacts for teachers of their children's sections
         if self.request.user.role == 'parent':
-            child_sections = Learner.objects.filter(
-                parent_account=self.request.user
-            ).values_list('section_id', flat=True)
+            child_sections = LearnerParent.objects.filter(
+                parent=self.request.user
+            ).values_list('learner__section_id', flat=True)
             teacher_ids = TeacherSectionAssignment.objects.filter(
                 section_id__in=child_sections, is_active=True
             ).values_list('teacher_id', flat=True)

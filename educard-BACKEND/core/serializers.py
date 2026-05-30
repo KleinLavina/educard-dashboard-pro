@@ -9,7 +9,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
     User, ParentProfile, TeacherContact,
     Department, GradeLevel, Section,
-    Learner, LearnerSectionHistory,
+    Learner, LearnerParent, LearnerSectionHistory,
     Subject, Grade, GradeAuditLog, BulkImportJob,
     SchoolCalendar, AttendanceRecord,
     IDTemplate, IDPrintQueue, IDCardElementPosition,
@@ -178,7 +178,7 @@ class LearnerDetailSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True)
     is_graduate = serializers.BooleanField(read_only=True)
     section_data = SectionSerializer(source='section', read_only=True)
-    parent_name = serializers.SerializerMethodField()
+    parents = serializers.SerializerMethodField()
 
     class Meta:
         model = Learner
@@ -190,13 +190,23 @@ class LearnerDetailSerializer(serializers.ModelSerializer):
             'barcode_value', 'barcode_active',
             'graduation_status', 'is_graduate',
             'parent_phone', 'parent_messenger_psid',
-            'parent_account', 'parent_name',
+            'parents',
             'enrolled_at', 'graduated_at',
         ]
         read_only_fields = ['lrn', 'barcode_value', 'enrolled_at']
 
-    def get_parent_name(self, obj):
-        return obj.parent_account.get_full_name() if obj.parent_account else None
+    def get_parents(self, obj):
+        links = obj.learner_parents.select_related('parent').all()
+        return [
+            {
+                'id': lp.id,
+                'parent_id': lp.parent_id,
+                'parent_name': lp.parent.get_full_name(),
+                'relationship': lp.relationship,
+                'is_primary_contact': lp.is_primary_contact,
+            }
+            for lp in links
+        ]
 
 
 class LearnerCreateSerializer(serializers.ModelSerializer):
@@ -205,13 +215,28 @@ class LearnerCreateSerializer(serializers.ModelSerializer):
         fields = [
             'lrn', 'first_name', 'middle_initial', 'last_name',
             'birth_date', 'sex', 'section',
-            'parent_phone', 'parent_account',
+            'parent_phone',
         ]
 
     def validate_lrn(self, value):
         if len(value) != 12 or not value.isdigit():
             raise serializers.ValidationError("LRN must be exactly 12 digits.")
         return value
+
+
+class LearnerParentSerializer(serializers.ModelSerializer):
+    learner_name = serializers.CharField(source='learner.full_name', read_only=True)
+    learner_lrn = serializers.CharField(source='learner.lrn', read_only=True)
+    parent_name = serializers.CharField(source='parent.get_full_name', read_only=True)
+
+    class Meta:
+        model = LearnerParent
+        fields = [
+            'id', 'learner', 'learner_name', 'learner_lrn',
+            'parent', 'parent_name',
+            'relationship', 'is_primary_contact', 'created_at',
+        ]
+        read_only_fields = ['created_at']
 
 
 class LearnerSectionHistorySerializer(serializers.ModelSerializer):
@@ -241,12 +266,14 @@ class LearnerSectionHistorySerializer(serializers.ModelSerializer):
 class SubjectSerializer(serializers.ModelSerializer):
     teacher_name = serializers.CharField(source='teacher.get_full_name', read_only=True)
     section_label = serializers.SerializerMethodField()
+    school_year_label = serializers.CharField(source='school_year.school_year', read_only=True)
 
     class Meta:
         model = Subject
         fields = [
             'id', 'name', 'section', 'section_label',
             'teacher', 'teacher_name',
+            'school_year', 'school_year_label',
             'quarter_weight_quiz', 'quarter_weight_exam', 'quarter_weight_activity',
         ]
 
@@ -300,6 +327,7 @@ class AttendanceRecordSerializer(serializers.ModelSerializer):
     learner_name = serializers.CharField(source='learner.full_name', read_only=True)
     learner_lrn = serializers.CharField(source='learner.lrn', read_only=True)
     learner_photo = serializers.CharField(source='learner.photo_path', read_only=True)
+    calendar_entry_type = serializers.CharField(source='calendar_entry.type', read_only=True)
 
     class Meta:
         model = AttendanceRecord
@@ -308,6 +336,7 @@ class AttendanceRecordSerializer(serializers.ModelSerializer):
             'date', 'status',
             'time_in_morning', 'time_out_morning',
             'time_in_afternoon', 'time_out_afternoon',
+            'calendar_entry', 'calendar_entry_type',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['created_at', 'updated_at']

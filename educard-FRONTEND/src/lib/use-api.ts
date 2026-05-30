@@ -270,12 +270,92 @@ export function useConductLogs(learnerId?: number) {
   })
 }
 
+// ─── Learner Parents ─────────────────────────────────────────────────────────
+
+export function useLearnerParents(learnerId?: number) {
+  return useQuery({
+    queryKey: ['learner-parents', learnerId],
+    queryFn: () => api.learnerParents.list(learnerId),
+    staleTime: 60_000,
+  })
+}
+
+export function useParentChildren(parentId: number) {
+  return useQuery({
+    queryKey: ['learner-parents', 'parent', parentId],
+    queryFn: () => api.learnerParents.listByParent(parentId),
+    enabled: parentId > 0,
+    staleTime: 60_000,
+  })
+}
+
+/** Returns all learners linked to the current parent user */
+export function useMyChildren() {
+  return useQuery({
+    queryKey: ['my-children'],
+    queryFn: () => api.learners.list({ page: 1 }),
+    staleTime: 60_000,
+  })
+}
+
+/** Returns the single learner record for the current student user */
+export function useMyLearner() {
+  return useQuery({
+    queryKey: ['my-learner'],
+    queryFn: async () => {
+      const res = await api.learners.list({ page: 1 })
+      return res.results[0] ?? null
+    },
+    staleTime: 60_000,
+  })
+}
+
+/** Returns the section + learners for the current teacher user */
+export function useMyTeacherSection() {
+  return useQuery({
+    queryKey: ['my-teacher-section'],
+    queryFn: async () => {
+      const [sections, learners] = await Promise.all([
+        api.sections.list(),
+        api.learners.list({ page: 1 }),
+      ])
+      return { sections, learners: learners.results }
+    },
+    staleTime: 60_000,
+  })
+}
+
+export function useAddLearnerParent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Parameters<typeof api.learnerParents.create>[0]) =>
+      api.learnerParents.create(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['learner-parents'] }),
+  })
+}
+
+export function useRemoveLearnerParent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.learnerParents.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['learner-parents'] }),
+  })
+}
+
 // ─── Graduation ───────────────────────────────────────────────────────────────
 
 export function useGraduationCandidates() {
   return useQuery({
     queryKey: ['graduation', 'candidates'],
     queryFn: () => api.graduation.candidates(),
+    staleTime: 60_000,
+  })
+}
+
+export function useGraduationNotifications(learnerId?: number) {
+  return useQuery({
+    queryKey: ['graduation-notifications', learnerId],
+    queryFn: () => api.graduation.notifications(learnerId),
     staleTime: 60_000,
   })
 }

@@ -514,7 +514,7 @@ export function AdminView() {
             </CardHeader>
             <CardContent className="space-y-3">
               {activePendingTasks.map((task, i) => (
-                <div key={task.id ?? i} className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setSelectedTask(task)}>
+                <div key={i} className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setSelectedTask(task)}>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium leading-snug">{task.task}</p>
                     <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">

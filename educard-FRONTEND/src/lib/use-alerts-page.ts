@@ -7,6 +7,7 @@ import { useNotifications, useProlongedAbsences, useAbsenceAlerts } from './use-
 import {
   notificationHistory as mockNotifHistory,
   parentProfiles as mockParentProfiles,
+  getLearnerLrnsForParent,
   allLearners as mockAllLearners,
   SF2_TARGET,
 } from './school-data'
