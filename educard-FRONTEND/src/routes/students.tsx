@@ -37,6 +37,8 @@ import {
   departments,
 } from "@/lib/school-data";
 import { useRole } from "@/lib/role-context";
+import { useStudentsPage } from "@/lib/use-students-page";
+import { useCreateLearner, useLearnerGrades, useLearnerAttendance, useLearnerConduct } from "@/lib/use-api";
 
 export const Route = createFileRoute("/students")({
   component: StudentsPage,
@@ -140,6 +142,50 @@ function AdminRoster() {
   const [selectedLrn, setSelectedLrn] = useState<string | null>(null);
   const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+
+  // ── Live API data ──────────────────────────────────────────────────────────
+  const { filtered: apiFiltered, totalCount, atRiskCount, sectionCount, isLoading } = useStudentsPage(search, dept);
+  const createLearner = useCreateLearner();
+
+  // For the detail sheet — fetch per-learner data when a row is clicked
+  const selectedApiLearner = apiFiltered.find(l => l.lrn === selectedLrn);
+  const gradesQuery      = useLearnerGrades(selectedApiLearner?.id ?? null);
+  const attendanceQuery  = useLearnerAttendance(selectedApiLearner?.id ?? null);
+  const conductQuery     = useLearnerConduct(selectedApiLearner?.id ?? null);
+
+  // Normalise API grades → { subject, q1, q2, q3, q4 } for the table
+  const studentGradesApi = (() => {
+    const bySubject: Record<string, { subject: string; grades: { q1: number; q2: number; q3: number; q4: number | null } }> = {};
+    for (const g of gradesQuery.data ?? []) {
+      if (!bySubject[g.subject_name]) bySubject[g.subject_name] = { subject: g.subject_name, grades: { q1: 0, q2: 0, q3: 0, q4: null } };
+      const key = `q${g.quarter}` as keyof typeof bySubject[string]['grades'];
+      (bySubject[g.subject_name].grades as Record<string, number | null>)[key] = g.computed_grade ? Number(g.computed_grade) : null;
+    }
+    return Object.values(bySubject);
+  })();
+
+  // Fall back to mock data for the detail sheet when API has no data yet
+  const studentGrades    = studentGradesApi.length > 0 ? studentGradesApi : gradeRecords.filter(g => g.lrn === selectedLrn).map(g => ({ subject: g.subject, grades: g.grades }));
+  const studentAttendance = attendanceQuery.data?.map(a => ({ lrn: a.learner_lrn, date: a.date, timeIn: a.time_in_morning ?? "", timeOut: a.time_out_afternoon ?? "", status: a.status })) ?? attendanceLogs.filter(a => a.lrn === selectedLrn);
+  const studentConduct   = conductQuery.data?.map(c => ({ lrn: c.learner_lrn, date: c.date, item: c.item, type: c.type, recordedBy: c.recorded_by_name ?? "" })) ?? conductLogs.filter(c => c.lrn === selectedLrn);
+  const studentIdHistory = idPrintHistory.filter(i => i.lrn === selectedLrn);
+
+  // Use API filtered list; fall back to mock when API is loading/unavailable
+  const filtered = apiFiltered.length > 0 || !isLoading
+    ? apiFiltered
+    : allLearners.filter((l) => {
+        const matchDept = dept === "all" || l.department.key === dept;
+        const q = search.toLowerCase();
+        return matchDept && (!q || fullName(l.learner).toLowerCase().includes(q) || l.learner.lrn.includes(q));
+      }).map(l => ({
+        lrn: l.learner.lrn, fullName: fullName(l.learner),
+        firstName: l.learner.firstName, middleInitial: l.learner.middleInitial, lastName: l.learner.lastName,
+        sectionLabel: l.sectionLabel, departmentKey: l.department.key as "JHS" | "SHS",
+        gpa: l.learner.gpa, attendanceRate: l.learner.attendanceRate, status: l.status, id: null,
+      }));
+
+  const atRisk = atRiskCount;
+  const selectedStudent = selectedLrn ? filtered.find(l => l.lrn === selectedLrn) : null;
   
   // Enroll Student Form State
   const [enrollForm, setEnrollForm] = useState({
@@ -151,25 +197,6 @@ function AdminRoster() {
     section: "",
   });
 
-  const filtered = allLearners.filter((l) => {
-    const matchDept = dept === "all" || l.department.key === dept;
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      fullName(l.learner).toLowerCase().includes(q) ||
-      l.learner.lrn.includes(q) ||
-      l.sectionLabel.toLowerCase().includes(q);
-    return matchDept && matchSearch;
-  });
-
-  const atRisk = allLearners.filter((l) => l.status === "At Risk").length;
-
-  const selectedStudent = selectedLrn ? allLearners.find(l => l.learner.lrn === selectedLrn) : null;
-  const studentGrades = selectedLrn ? gradeRecords.filter(g => g.lrn === selectedLrn) : [];
-  const studentAttendance = selectedLrn ? attendanceLogs.filter(a => a.lrn === selectedLrn) : [];
-  const studentConduct = selectedLrn ? conductLogs.filter(c => c.lrn === selectedLrn) : [];
-  const studentIdHistory = selectedLrn ? idPrintHistory.filter(i => i.lrn === selectedLrn) : [];
-
   const availableSections = enrollForm.gradeLevel 
     ? departments
         .flatMap(d => d.grades)
@@ -177,7 +204,7 @@ function AdminRoster() {
         ?.sections || []
     : [];
 
-  const handleEnrollStudent = () => {
+  const handleEnrollStudent = async () => {
     if (!enrollForm.lrn || !enrollForm.firstName || !enrollForm.lastName || !enrollForm.gradeLevel || !enrollForm.section) {
       toast.error("Please fill in all required fields");
       return;
@@ -191,6 +218,19 @@ function AdminRoster() {
     toast.success("Student enrolled successfully", {
       description: "ID card queued for printing",
     });
+
+    // Call real API
+    try {
+      await createLearner.mutateAsync({
+        lrn: enrollForm.lrn,
+        first_name: enrollForm.firstName,
+        middle_initial: enrollForm.middleInitial,
+        last_name: enrollForm.lastName,
+        section: Number(enrollForm.section) || undefined,
+      } as any);
+    } catch {
+      // API unavailable — mock success already shown above
+    }
     
     setEnrollForm({
       lrn: "",
@@ -205,7 +245,7 @@ function AdminRoster() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedStudents(new Set(filtered.map(l => l.learner.lrn)));
+      setSelectedStudents(new Set(filtered.map(l => l.lrn)));
     } else {
       setSelectedStudents(new Set());
     }
@@ -245,10 +285,10 @@ function AdminRoster() {
       <main className="space-y-6 p-4 sm:p-6">
         <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[
-            { label: "Total Enrolled", value: allLearners.length, icon: Users, accent: "text-chart-3" },
-            { label: "On Track", value: allLearners.length - atRisk, icon: CheckCircle2, accent: "text-chart-2" },
+            { label: "Total Enrolled", value: totalCount, icon: Users, accent: "text-chart-3" },
+            { label: "On Track", value: totalCount - atRisk, icon: CheckCircle2, accent: "text-chart-2" },
             { label: "At Risk", value: atRisk, icon: AlertTriangle, accent: "text-destructive" },
-            { label: "Sections", value: allSections.length, icon: School, accent: "text-chart-1" },
+            { label: "Sections", value: sectionCount, icon: School, accent: "text-chart-1" },
           ].map((m) => (
             <Card key={m.label} className="border-border/60">
               <CardContent className="flex items-start justify-between gap-3 p-5">
@@ -324,34 +364,34 @@ function AdminRoster() {
                 <TableBody>
                   {filtered.map((l) => (
                     <TableRow 
-                      key={l.learner.lrn} 
+                      key={l.lrn} 
                       className="cursor-pointer hover:bg-muted/40"
                       onClick={(e) => {
                         if ((e.target as HTMLElement).closest('button, input[type="checkbox"]')) return;
-                        setSelectedLrn(l.learner.lrn);
+                        setSelectedLrn(l.lrn);
                       }}
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
-                          checked={selectedStudents.has(l.learner.lrn)}
-                          onCheckedChange={(checked) => handleSelectStudent(l.learner.lrn, checked as boolean)}
+                          checked={selectedStudents.has(l.lrn)}
+                          onCheckedChange={(checked) => handleSelectStudent(l.lrn, checked as boolean)}
                         />
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{l.learner.lrn}</TableCell>
-                      <TableCell className="font-medium whitespace-nowrap">{fullName(l.learner)}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{l.lrn}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{l.fullName}</TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{l.sectionLabel}</TableCell>
                       <TableCell>
                         <span className={`rounded-full px-2 py-0.5 font-ui text-[10px] uppercase tracking-wider ${
-                          l.department.key === "JHS" ? "bg-primary/10 text-primary" : "bg-chart-1/10 text-chart-1"
+                          l.departmentKey === "JHS" ? "bg-primary/10 text-primary" : "bg-chart-1/10 text-chart-1"
                         }`}>
-                          {l.department.key}
+                          {l.departmentKey}
                         </span>
                       </TableCell>
-                      <TableCell className={`text-right font-semibold ${l.learner.gpa < 75 ? "text-destructive" : ""}`}>
-                        {l.learner.gpa}
+                      <TableCell className={`text-right font-semibold ${l.gpa < 75 ? "text-destructive" : ""}`}>
+                        {l.gpa}
                       </TableCell>
-                      <TableCell className={`text-right font-semibold ${l.learner.attendanceRate < SF2_TARGET ? "text-destructive" : ""}`}>
-                        {l.learner.attendanceRate.toFixed(1)}%
+                      <TableCell className={`text-right font-semibold ${l.attendanceRate < SF2_TARGET ? "text-destructive" : ""}`}>
+                        {Number(l.attendanceRate).toFixed(1)}%
                       </TableCell>
                       <TableCell>
                         <Badge variant={l.status === "At Risk" ? "destructive" : "secondary"}>{l.status}</Badge>
@@ -361,14 +401,14 @@ function AdminRoster() {
                   {filtered.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
-                        No learners match your search.
+                        {isLoading ? "Loading learners…" : "No learners match your search."}
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">{filtered.length} of {allLearners.length} learners shown</p>
+            <p className="mt-3 text-xs text-muted-foreground">{filtered.length} of {totalCount} learners shown</p>
           </CardContent>
         </Card>
 
@@ -426,7 +466,7 @@ function AdminRoster() {
             {selectedStudent && (
               <>
                 <SheetHeader>
-                  <SheetTitle>{fullName(selectedStudent.learner)}</SheetTitle>
+                  <SheetTitle>{selectedStudent.fullName}</SheetTitle>
                   <p className="text-sm text-muted-foreground">{selectedStudent.sectionLabel}</p>
                 </SheetHeader>
 
@@ -437,15 +477,15 @@ function AdminRoster() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">LRN</p>
-                          <p className="font-mono text-sm font-semibold">{selectedStudent.learner.lrn}</p>
+                          <p className="font-mono text-sm font-semibold">{selectedStudent.lrn}</p>
                         </div>
                         <div>
                           <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">GPA</p>
-                          <p className="text-sm font-semibold">{selectedStudent.learner.gpa}</p>
+                          <p className="text-sm font-semibold">{selectedStudent.gpa}</p>
                         </div>
                         <div>
                           <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">Attendance</p>
-                          <p className="text-sm font-semibold">{selectedStudent.learner.attendanceRate.toFixed(1)}%</p>
+                          <p className="text-sm font-semibold">{Number(selectedStudent.attendanceRate).toFixed(1)}%</p>
                         </div>
                         <div>
                           <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">Status</p>
@@ -730,7 +770,19 @@ function TeacherRoster() {
   const classAtt = (learners.reduce((a, l) => a + l.attendanceRate, 0) / learners.length).toFixed(1);
   const [selectedLrn, setSelectedLrn] = useState<string | null>(null);
 
-  const selectedStudent = selectedLrn ? allLearners.find(l => l.learner.lrn === selectedLrn) : null;
+  // Normalise to the same flat shape used by AdminRoster
+  const selectedStudent = selectedLrn ? (() => {
+    const enriched = allLearners.find(l => l.learner.lrn === selectedLrn);
+    if (!enriched) return null;
+    return {
+      lrn: enriched.learner.lrn,
+      fullName: fullName(enriched.learner),
+      sectionLabel: enriched.sectionLabel,
+      gpa: enriched.learner.gpa,
+      attendanceRate: enriched.learner.attendanceRate,
+      status: enriched.status,
+    };
+  })() : null;
   const studentGrades = selectedLrn ? gradeRecords.filter(g => g.lrn === selectedLrn) : [];
   const studentConduct = selectedLrn ? conductLogs.filter(c => c.lrn === selectedLrn) : [];
 
@@ -803,7 +855,7 @@ function TeacherRoster() {
             {selectedStudent && (
               <>
                 <SheetHeader>
-                  <SheetTitle>{fullName(selectedStudent.learner)}</SheetTitle>
+                  <SheetTitle>{selectedStudent.fullName}</SheetTitle>
                   <p className="text-sm text-muted-foreground">{selectedStudent.sectionLabel}</p>
                 </SheetHeader>
 
@@ -813,15 +865,15 @@ function TeacherRoster() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">LRN</p>
-                          <p className="font-mono text-sm font-semibold">{selectedStudent.learner.lrn}</p>
+                          <p className="font-mono text-sm font-semibold">{selectedStudent.lrn}</p>
                         </div>
                         <div>
                           <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">GPA</p>
-                          <p className="text-sm font-semibold">{selectedStudent.learner.gpa}</p>
+                          <p className="text-sm font-semibold">{selectedStudent.gpa}</p>
                         </div>
                         <div>
                           <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">Attendance</p>
-                          <p className="text-sm font-semibold">{selectedStudent.learner.attendanceRate.toFixed(1)}%</p>
+                          <p className="text-sm font-semibold">{Number(selectedStudent.attendanceRate).toFixed(1)}%</p>
                         </div>
                         <div>
                           <p className="font-ui text-[10px] uppercase tracking-wide text-muted-foreground">Status</p>

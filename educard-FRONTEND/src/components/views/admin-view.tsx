@@ -75,6 +75,7 @@ import {
   fullName,
   type Section as SectionT,
 } from "@/lib/school-data";
+import { useAdminDashboard } from "@/lib/use-admin-dashboard";
 
 const jhs = departmentStats(departments[0]);
 const shs = departmentStats(departments[1]);
@@ -181,6 +182,16 @@ function SectionCard({ section, adviser }: { section: SectionT; adviser: string 
 }
 
 export function AdminView() {
+  // ── Live API data (falls back to mock when API is unreachable) ──────────
+  const {
+    stats,
+    atRiskLearners: liveAtRisk,
+    pendingTasks: liveTasks,
+    idPrinted,
+    idPending,
+    departmentBars: liveDeptBars,
+  } = useAdminDashboard();
+
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [sf1ExportOpen, setSf1ExportOpen] = useState(false);
   const [lrnUpdateOpen, setLrnUpdateOpen] = useState(false);
@@ -201,10 +212,23 @@ export function AdminView() {
   const [sectionId, setSectionId] = useState("");
   const [lrnError, setLrnError] = useState("");
 
-  const overallRate = totals.campusAttendance.toFixed(1);
+  // Use live values when available, fall back to mock
+  const overallRate = Number(stats.campus_attendance).toFixed(1);
   const compliancePct = Math.round(
-    ((totals.sections - totals.below) / totals.sections) * 100,
+    ((totals.sections - stats.sections_below_target) / totals.sections) * 100,
   );
+  // Override static arrays with live data
+  const activePendingTasks = liveTasks.length > 0 ? liveTasks : pendingTasks;
+  const activeAtRisk = liveAtRisk.length > 0 ? liveAtRisk : flaggedLearners.map(l => ({
+    lrn: l.learner.lrn,
+    fullName: fullName(l.learner),
+    sectionLabel: l.sectionLabel,
+    adviser: l.section.adviser,
+    attendanceRate: l.learner.attendanceRate,
+    gpa: l.learner.gpa,
+    status: l.status,
+  }));
+  const activeDeptBars = liveDeptBars;
 
   const handleEnrollSubmit = () => {
     if (!lrn.trim()) {
@@ -246,8 +270,8 @@ export function AdminView() {
 
   const metrics = [
     {
-      label: `Total Enrolled (SY ${SCHOOL_YEAR})`,
-      value: totals.enrolled.toString(),
+      label: `Total Enrolled (SY ${stats.school_year || SCHOOL_YEAR})`,
+      value: stats.total_enrolled.toString(),
       hint: `${totals.sections} sections, 6 grade levels`,
       icon: Users,
       accent: "text-chart-3",
@@ -261,14 +285,14 @@ export function AdminView() {
     },
     {
       label: "ID Cards Printed",
-      value: `${totals.enrolled - 3}`,
-      hint: "3 pending reprints",
+      value: `${idPrinted}`,
+      hint: `${idPending} pending reprints`,
       icon: IdCard,
       accent: "text-chart-1",
     },
     {
       label: "Pending Tasks",
-      value: pendingTasks.length.toString(),
+      value: activePendingTasks.length.toString(),
       hint: "Admin & enrollment tasks",
       icon: AlertTriangle,
       accent: "text-destructive",
@@ -295,11 +319,11 @@ export function AdminView() {
                 Magandang umaga, Admin
               </p>
               <h2 className="mt-1 text-2xl font-semibold sm:text-3xl">
-                {totals.enrolled} learners · {overallRate}% campus attendance
+                {stats.total_enrolled} learners · {overallRate}% campus attendance
               </h2>
               <p className="mt-2 max-w-xl text-sm opacity-90">
-                {totals.below} section{totals.below === 1 ? "" : "s"} below SF2 {SF2_TARGET}% target.
-                {pendingTasks.filter(t => t.priority === "High").length} high-priority tasks pending.
+                {stats.sections_below_target} section{stats.sections_below_target === 1 ? "" : "s"} below SF2 {SF2_TARGET}% target.
+                {activePendingTasks.filter(t => t.priority === "High").length} high-priority tasks pending.
               </p>
             </div>
             <div className="flex gap-2">
@@ -397,7 +421,7 @@ export function AdminView() {
             </CardHeader>
             <CardContent className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={departmentBars}>
+                <BarChart data={activeDeptBars}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                   <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={12} />
                   <YAxis domain={[80, 100]} stroke="var(--color-muted-foreground)" fontSize={12} unit="%" />
@@ -461,16 +485,16 @@ export function AdminView() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {flaggedLearners.map((l) => (
-                      <TableRow key={l.learner.lrn} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedFlagged(l)}>
+                    {activeAtRisk.map((l) => (
+                      <TableRow key={l.lrn} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedFlagged(l as any)}>
                         <TableCell className="font-mono text-xs text-muted-foreground">
-                          {l.learner.lrn}
+                          {l.lrn}
                         </TableCell>
-                        <TableCell className="font-medium">{fullName(l.learner)}</TableCell>
+                        <TableCell className="font-medium">{l.fullName}</TableCell>
                         <TableCell className="text-muted-foreground">{l.sectionLabel}</TableCell>
-                        <TableCell className="text-muted-foreground">{l.section.adviser}</TableCell>
+                        <TableCell className="text-muted-foreground">{l.adviser}</TableCell>
                         <TableCell className="text-right font-semibold text-destructive">
-                          {l.learner.attendanceRate.toFixed(1)}%
+                          {Number(l.attendanceRate).toFixed(1)}%
                         </TableCell>
                         <TableCell>
                           <Badge variant="destructive">Below SF2</Badge>
@@ -489,8 +513,8 @@ export function AdminView() {
               <Badge variant="outline">{pendingTasks.length} tasks</Badge>
             </CardHeader>
             <CardContent className="space-y-3">
-              {pendingTasks.map((task, i) => (
-                <div key={i} className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setSelectedTask(task)}>
+              {activePendingTasks.map((task, i) => (
+                <div key={task.id ?? i} className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setSelectedTask(task)}>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium leading-snug">{task.task}</p>
                     <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
@@ -534,7 +558,7 @@ export function AdminView() {
                 <div className="flex items-center justify-between rounded-lg border bg-card p-4">
                   <div>
                     <p className="text-sm font-medium">Total IDs Printed</p>
-                    <p className="text-2xl font-bold">{totals.enrolled - 3}</p>
+                    <p className="text-2xl font-bold">{idPrinted}</p>
                   </div>
                   <div className="rounded-lg bg-chart-1/10 p-3 text-chart-1">
                     <CheckCircle2 className="h-6 w-6" />
@@ -543,7 +567,7 @@ export function AdminView() {
                 <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 p-4">
                   <div>
                     <p className="text-sm font-medium">Pending Reprints</p>
-                    <p className="text-2xl font-bold text-destructive">3</p>
+                    <p className="text-2xl font-bold text-destructive">{idPending}</p>
                   </div>
                   <div className="rounded-lg bg-destructive/10 p-3 text-destructive">
                     <AlertTriangle className="h-6 w-6" />

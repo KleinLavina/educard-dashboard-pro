@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { SCHOOL_NAME, SCHOOL_YEAR, schoolCalendar } from "@/lib/school-data";
 import { useTheme } from "@/lib/theme-context";
 import { useRole } from "@/lib/role-context";
+import { useSettingsPage } from "@/lib/use-settings-page";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";

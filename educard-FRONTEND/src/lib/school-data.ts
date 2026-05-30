@@ -426,46 +426,55 @@ export const attendanceLogs: AttendanceLog[] = [
 ];
 
 // 0-D: Parent profiles ------------------------------------------------------
+// Now uses LearnerParent through-table structure (multi-parent support).
 
 export type ParentProfile = {
   id: string;
   name: string;
-  relationship: "Mother" | "Father" | "Guardian";
   phone: string;
   messengerLinked: boolean;
   smsEnabled: boolean;
-  linkedLrns: string[];
+};
+
+/** Maps a learner LRN to one or more parents with their relationship */
+export type LearnerParentLink = {
+  lrn: string;
+  parentId: string;
+  relationship: "Mother" | "Father" | "Guardian";
+  isPrimaryContact: boolean;
 };
 
 export const parentProfiles: ParentProfile[] = [
-  {
-    id: "p001",
-    name: "Maria Dela Cruz",
-    relationship: "Mother",
-    phone: "+63 917 123 4567",
-    messengerLinked: true,
-    smsEnabled: false,
-    linkedLrns: ["136728140987", "136728140989"], // Juan + Bea (siblings for demo)
-  },
-  {
-    id: "p002",
-    name: "Rodrigo Villanueva",
-    relationship: "Father",
-    phone: "+63 918 234 5678",
-    messengerLinked: false,
-    smsEnabled: true,
-    linkedLrns: ["136728140988"],
-  },
-  {
-    id: "p003",
-    name: "Lourdes Reyes",
-    relationship: "Mother",
-    phone: "+63 919 345 6789",
-    messengerLinked: true,
-    smsEnabled: true,
-    linkedLrns: ["136728140098"],
-  },
+  { id: "p001", name: "Maria Dela Cruz",   phone: "+63 917 123 4567", messengerLinked: true,  smsEnabled: false },
+  { id: "p002", name: "Rodrigo Villanueva", phone: "+63 918 234 5678", messengerLinked: false, smsEnabled: true  },
+  { id: "p003", name: "Lourdes Reyes",      phone: "+63 919 345 6789", messengerLinked: true,  smsEnabled: true  },
+  { id: "p004", name: "Eduardo Dela Cruz",  phone: "+63 917 999 0001", messengerLinked: false, smsEnabled: true  },
 ];
+
+/** LearnerParent through-table mock — supports multiple parents per learner */
+export const learnerParentLinks: LearnerParentLink[] = [
+  // Juan Dela Cruz — Mother (primary) + Father
+  { lrn: "136728140987", parentId: "p001", relationship: "Mother",   isPrimaryContact: true  },
+  { lrn: "136728140987", parentId: "p004", relationship: "Father",   isPrimaryContact: false },
+  // Bea Soriano — same Mother as Juan (siblings demo)
+  { lrn: "136728140989", parentId: "p001", relationship: "Mother",   isPrimaryContact: true  },
+  // Carlo Villanueva — Father only
+  { lrn: "136728140988", parentId: "p002", relationship: "Father",   isPrimaryContact: true  },
+  // Marco Reyes — Mother only
+  { lrn: "136728140098", parentId: "p003", relationship: "Mother",   isPrimaryContact: true  },
+];
+
+/** Helper: get all parents for a given LRN */
+export function getParentsForLearner(lrn: string) {
+  return learnerParentLinks
+    .filter(l => l.lrn === lrn)
+    .map(l => ({ ...l, parent: parentProfiles.find(p => p.id === l.parentId)! }));
+}
+
+/** Helper: get all learner LRNs linked to a parent */
+export function getLearnerLrnsForParent(parentId: string): string[] {
+  return learnerParentLinks.filter(l => l.parentId === parentId).map(l => l.lrn);
+}
 
 // 0-E: Notification history -------------------------------------------------
 

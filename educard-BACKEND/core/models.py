@@ -191,9 +191,9 @@ class Learner(models.Model):
     
     # Portal Access
     user_account = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='learner_profile', limit_choices_to={'role': 'student'})
-    parent_account = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='children', limit_choices_to={'role': 'parent'})
-    
-    # Parent Contact
+    # parent_account removed — use LearnerParent through-table for multi-parent support
+
+    # Parent Contact (kept for legacy/quick-access; LearnerParent is the source of truth)
     parent_phone = models.CharField(max_length=20, blank=True, null=True)
     parent_messenger_psid = models.CharField(max_length=50, blank=True, null=True)
     
@@ -234,6 +234,44 @@ class Learner(models.Model):
 
 
 # ============================================================================
+# 3b. LEARNER–PARENT RELATIONSHIP (Multi-parent support)
+# ============================================================================
+
+class LearnerParent(models.Model):
+    """
+    Through-table linking a learner to one or more parent/guardian accounts.
+    Replaces the single parent_account FK on Learner to support both mother + father.
+    """
+    RELATIONSHIP_CHOICES = [
+        ('Mother', 'Mother'),
+        ('Father', 'Father'),
+        ('Guardian', 'Guardian'),
+    ]
+
+    learner = models.ForeignKey(
+        Learner, on_delete=models.CASCADE, related_name='learner_parents'
+    )
+    parent = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='parent_children',
+        limit_choices_to={'role': 'parent'}
+    )
+    relationship = models.CharField(max_length=20, choices=RELATIONSHIP_CHOICES)
+    is_primary_contact = models.BooleanField(
+        default=False,
+        help_text="Primary contact receives all notifications by default"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'learner_parents'
+        unique_together = ['learner', 'parent']
+        ordering = ['learner', '-is_primary_contact']
+
+    def __str__(self):
+        return f"{self.parent.get_full_name()} ({self.relationship}) → {self.learner.full_name}"
+
+
+# ============================================================================
 # 4. SUBJECTS & GRADES
 # ============================================================================
 
@@ -241,6 +279,11 @@ class Subject(models.Model):
     """Subjects taught in each section"""
     section = models.ForeignKey(Section, on_delete=models.CASCADE, related_name='subjects')
     teacher = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='taught_subjects', limit_choices_to={'role': 'teacher'})
+    school_year = models.ForeignKey(
+        'SchoolYearConfig', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='subjects',
+        help_text="School year this subject belongs to — enables historical subject records"
+    )
     name = models.CharField(max_length=100, help_text="e.g., Mathematics 7, General Physics I")
     
     # Grading weights (must sum to 100)
@@ -338,7 +381,12 @@ class AttendanceRecord(models.Model):
     
     learner = models.ForeignKey(Learner, on_delete=models.CASCADE, related_name='attendance_records')
     date = models.DateField()
-    
+    calendar_entry = models.ForeignKey(
+        'SchoolCalendar', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='attendance_records',
+        help_text="Links to SchoolCalendar to validate this is a school day"
+    )
+
     # Time tracking (4 sessions per day)
     time_in_morning = models.TimeField(null=True, blank=True)
     time_out_morning = models.TimeField(null=True, blank=True)
@@ -517,6 +565,11 @@ class ConductLog(models.Model):
 
 class SchoolSettings(models.Model):
     """School-wide configuration (Tenant Settings)"""
+    tenant = models.OneToOneField(
+        'Tenant', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='settings',
+        help_text="The tenant (school) this settings row belongs to"
+    )
     school_name = models.CharField(max_length=255, default="St. Mary's Academy")
     school_year = models.CharField(max_length=20, default="2025-2026")
     school_logo_path = models.CharField(max_length=500, blank=True, null=True)
@@ -651,7 +704,7 @@ class Message(models.Model):
 class GraduationNotification(models.Model):
     """
     Tracks graduation congratulation messages sent to graduates/parents.
-    Prevents duplicate sends and records delivery status.
+    Changed from OneToOneField to ForeignKey to allow retries and multi-channel sends.
     Phase 7.1 — GraduationNotificationJob
     """
     CHANNEL_CHOICES = [
@@ -664,8 +717,8 @@ class GraduationNotification(models.Model):
         ('pending', 'Pending'),
     ]
 
-    learner = models.OneToOneField(
-        Learner, on_delete=models.CASCADE, related_name='graduation_notification'
+    learner = models.ForeignKey(
+        Learner, on_delete=models.CASCADE, related_name='graduation_notifications'
     )
     channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
@@ -1183,6 +1236,7 @@ class SF1Record(models.Model):
     """
     DepEd School Form 1: the official enrollment register.
     One row per learner per school year.
+    References LearnerSectionHistory as the source of truth for section placement.
     Phase 2.7 / Phase 8.1 — Admin exports SF1 for DepEd submission.
     """
     ENROLLMENT_STATUS_CHOICES = [
@@ -1197,11 +1251,19 @@ class SF1Record(models.Model):
         on_delete=models.CASCADE,
         related_name='sf1_records',
     )
+    # section is derived from LearnerSectionHistory; kept here for fast SF1 export queries
     section = models.ForeignKey(
         Section,
         on_delete=models.SET_NULL,
         null=True,
         related_name='sf1_records',
+    )
+    section_history = models.ForeignKey(
+        'LearnerSectionHistory',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='sf1_records',
+        help_text="Source LearnerSectionHistory entry — avoids duplication of section data"
     )
     school_year = models.CharField(max_length=20)
     enrollment_status = models.CharField(
