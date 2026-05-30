@@ -170,5 +170,11 @@ SIMPLE_JWT = {
 # ============================================================================
 # CORS — allow localhost dev servers and all Replit preview domains
 # ============================================================================
-CORS_ALLOW_ALL_ORIGINS = True
+import re
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r'^https://.*\.replit\.dev$',
+    r'^https://.*\.repl\.co$',
+    r'^http://localhost:\d+$',
+    r'^http://127\.0\.0\.1:\d+$',
+]
 CORS_ALLOW_CREDENTIALS = True

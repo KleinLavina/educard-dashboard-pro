@@ -212,6 +212,14 @@ class Command(BaseCommand):
             key='SHS',
             defaults=dict(label='Senior High School', caption='Grades 11 – 12 · Academic & TVL Tracks')
         )
+        spl, _ = Department.objects.get_or_create(
+            key='SPL',
+            defaults=dict(label='Special Programme', caption='Special Science Class & SPED')
+        )
+        als, _ = Department.objects.get_or_create(
+            key='ALS',
+            defaults=dict(label='Alternative Learning System', caption='Out-of-School Youth & Adults')
+        )
 
         # ====================================================================
         # GRADE LEVELS
@@ -283,6 +291,12 @@ class Command(BaseCommand):
             ('136728140802', 'Paolo',    'B', 'Yulo',        'M', 2008, 80.0,  84.0, (12, 'St. Ignatius')),
             ('136728140803', 'Patricia', 'D', 'Lim',         'F', 2008, 86.0,  94.1, (12, 'St. Francis')),
             ('136728140804', 'Enrique',  'S', 'Bondoc',      'M', 2008, 89.0,  95.6, (12, 'St. Francis')),
+            # Additional learners to round out sections
+            ('136728140100', 'Alicia',   'C', 'Flores',      'F', 2013, 83.0,  91.0, (7,  'Rosal')),
+            ('136728140513', 'Crisanto', 'M', 'Baguio',      'M', 2011, 88.0,  93.5, (9,  'Rizal')),
+            ('136728140514', 'Mylene',   'O', 'Ramos',       'F', 2011, 77.0,  85.2, (9,  'Bonifacio')),
+            ('136728140605', 'Bernard',  'L', 'Gorospe',     'M', 2010, 79.0,  87.8, (10, 'Charity')),
+            ('136728140069', 'Felicia',  'T', 'De Leon',     'F', 2009, 82.0,  91.4, (11, 'St. Therese')),
         ]
         learners = {}
         for lrn, fn, mi, ln, sex, by, gpa, att, sec_key in learner_data:

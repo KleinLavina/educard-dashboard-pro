@@ -80,10 +80,12 @@ class User(AbstractUser):
 
 
 class Department(models.Model):
-    """JHS (Junior High School) or SHS (Senior High School)"""
+    """School departments — JHS, SHS, plus specialised DepEd programmes."""
     DEPARTMENT_CHOICES = [
         ('JHS', 'Junior High School'),
         ('SHS', 'Senior High School'),
+        ('SPL', 'Special Programme'),
+        ('ALS', 'Alternative Learning System'),
     ]
     
     key = models.CharField(max_length=3, choices=DEPARTMENT_CHOICES, unique=True)
