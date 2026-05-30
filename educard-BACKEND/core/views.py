@@ -129,6 +129,44 @@ class DashboardStatsView(APIView):
         return Response(DashboardStatsSerializer(data).data)
 
 
+class DashboardView(APIView):
+    """GET /api/dashboard/  — combined overview: stats + enrollment by grade level."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        settings_obj = SchoolSettings.objects.first()
+        total = Learner.objects.filter(graduation_status='active').count()
+        avg_att = Learner.objects.filter(
+            graduation_status='active'
+        ).aggregate(a=Avg('attendance_rate'))['a'] or Decimal('0')
+
+        at_risk = Learner.objects.filter(
+            graduation_status='active'
+        ).filter(Q(gpa__lt=75) | Q(attendance_rate__lt=95)).count()
+
+        enrollment_by_grade = []
+        for gl in GradeLevel.objects.select_related('department').order_by('level'):
+            count = Learner.objects.filter(
+                section__grade_level=gl, graduation_status='active'
+            ).count()
+            enrollment_by_grade.append({
+                'grade_level': gl.level,
+                'label': gl.label,
+                'department': gl.department.key,
+                'enrolled': count,
+            })
+
+        return Response({
+            'total_enrolled': total,
+            'campus_attendance': round(avg_att, 2),
+            'at_risk_count': at_risk,
+            'current_quarter': settings_obj.current_quarter if settings_obj else 3,
+            'school_name': settings_obj.school_name if settings_obj else '',
+            'school_year': settings_obj.school_year if settings_obj else '',
+            'enrollment_by_grade': enrollment_by_grade,
+        })
+
+
 class DashboardDepartmentsView(APIView):
     """GET /api/dashboard/departments/  — per-department breakdown for admin view."""
     permission_classes = [permissions.IsAuthenticated]

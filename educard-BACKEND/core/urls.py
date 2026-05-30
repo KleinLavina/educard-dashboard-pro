@@ -8,7 +8,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     LoginView, MeView,
-    DashboardStatsView, DashboardDepartmentsView,
+    DashboardView, DashboardStatsView, DashboardDepartmentsView,
     DepartmentViewSet, GradeLevelViewSet, SectionViewSet,
     LearnerViewSet, LearnerParentViewSet, SubjectViewSet, GradeViewSet, GradeAuditLogViewSet,
     SchoolCalendarViewSet, AttendanceRecordViewSet,
@@ -80,8 +80,9 @@ urlpatterns = [
     path('auth/me/',      MeView.as_view(),            name='me'),
 
     # Dashboard
-    path('dashboard/stats/',       DashboardStatsView.as_view(),       name='dashboard-stats'),
-    path('dashboard/departments/', DashboardDepartmentsView.as_view(), name='dashboard-departments'),
+    path('dashboard/',             DashboardView.as_view(),             name='dashboard'),
+    path('dashboard/stats/',       DashboardStatsView.as_view(),        name='dashboard-stats'),
+    path('dashboard/departments/', DashboardDepartmentsView.as_view(),  name='dashboard-departments'),
 
     # Settings (singleton)
     path('settings/', SchoolSettingsView.as_view(), name='settings'),
