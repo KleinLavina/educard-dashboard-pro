@@ -1,0 +1,1008 @@
+[
+  {
+    "model": "core.schoolsettings",
+    "pk": 1,
+    "fields": {
+      "school_name": "St. Mary's Academy",
+      "school_year": "2025-2026",
+      "current_quarter": 3,
+      "current_week": 6,
+      "sf2_target_attendance": "95.00",
+      "q1_start": "2025-08-26",
+      "q1_end": "2025-10-17",
+      "q2_start": "2025-10-21",
+      "q2_end": "2025-12-19",
+      "q3_start": "2026-01-12",
+      "q3_end": "2026-03-27",
+      "q4_start": "2026-04-07",
+      "q4_end": "2026-05-30",
+      "messenger_enabled": true,
+      "sms_enabled": true,
+      "sms_credits_remaining": 1000
+    }
+  },
+  {
+    "model": "core.department",
+    "pk": 2,
+    "fields": {
+      "key": "JHS",
+      "label": "Junior High School",
+      "caption": "Grades 7 – 10"
+    }
+  },
+  {
+    "model": "core.department",
+    "pk": 3,
+    "fields": {
+      "key": "SHS",
+      "label": "Senior High School",
+      "caption": "Grades 11 – 12 · Academic & TVL Tracks"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 4,
+    "fields": {
+      "username": "admin",
+      "password": "pbkdf2_sha256$600000$placeholder$hash",
+      "first_name": "School",
+      "last_name": "Administrator",
+      "email": "admin@stmarys.edu.ph",
+      "is_staff": true,
+      "is_superuser": true,
+      "is_active": true,
+      "role": "admin",
+      "date_joined": "2025-08-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 5,
+    "fields": {
+      "username": "aurora.aquino",
+      "password": "pbkdf2_sha256$600000$placeholder$hash",
+      "first_name": "Aurora",
+      "last_name": "Aquino",
+      "email": "a.aquino@stmarys.edu.ph",
+      "is_staff": false,
+      "is_active": true,
+      "role": "teacher",
+      "phone": "+63 917 123 4567",
+      "subject_specialization": "Mathematics",
+      "date_joined": "2025-08-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 6,
+    "fields": {
+      "username": "benjie.lopez",
+      "password": "pbkdf2_sha256$600000$placeholder$hash",
+      "first_name": "Benjie",
+      "last_name": "Lopez",
+      "email": "b.lopez@stmarys.edu.ph",
+      "is_staff": false,
+      "is_active": true,
+      "role": "teacher",
+      "subject_specialization": "Science",
+      "date_joined": "2025-08-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 7,
+    "fields": {
+      "username": "carmela.cruz",
+      "password": "pbkdf2_sha256$600000$placeholder$hash",
+      "first_name": "Carmela",
+      "last_name": "Cruz",
+      "email": "c.cruz@stmarys.edu.ph",
+      "is_active": true,
+      "role": "teacher",
+      "date_joined": "2025-08-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 8,
+    "fields": {
+      "username": "dario.tan",
+      "password": "pbkdf2_sha256$600000$placeholder$hash",
+      "first_name": "Dario",
+      "last_name": "Tan",
+      "email": "d.tan@stmarys.edu.ph",
+      "is_active": true,
+      "role": "teacher",
+      "date_joined": "2025-08-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 9,
+    "fields": {
+      "username": "maria.delacruz",
+      "password": "pbkdf2_sha256$600000$placeholder$hash",
+      "first_name": "Maria",
+      "last_name": "Dela Cruz",
+      "email": "maria.delacruz@gmail.com",
+      "is_active": true,
+      "role": "parent",
+      "phone": "+63 917 123 4567",
+      "messenger_psid": "test_psid_001",
+      "date_joined": "2025-08-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.parentprofile",
+    "pk": 10,
+    "fields": {
+      "user": 9,
+      "relationship": "Mother",
+      "messenger_linked": true,
+      "sms_enabled": false
+    }
+  },
+  {
+    "model": "core.gradelevel",
+    "pk": 11,
+    "fields": {
+      "department": 2,
+      "level": 7,
+      "label": "Grade 7"
+    }
+  },
+  {
+    "model": "core.gradelevel",
+    "pk": 12,
+    "fields": {
+      "department": 2,
+      "level": 8,
+      "label": "Grade 8"
+    }
+  },
+  {
+    "model": "core.gradelevel",
+    "pk": 13,
+    "fields": {
+      "department": 2,
+      "level": 9,
+      "label": "Grade 9"
+    }
+  },
+  {
+    "model": "core.gradelevel",
+    "pk": 14,
+    "fields": {
+      "department": 2,
+      "level": 10,
+      "label": "Grade 10"
+    }
+  },
+  {
+    "model": "core.gradelevel",
+    "pk": 15,
+    "fields": {
+      "department": 3,
+      "level": 11,
+      "label": "Grade 11"
+    }
+  },
+  {
+    "model": "core.gradelevel",
+    "pk": 16,
+    "fields": {
+      "department": 3,
+      "level": 12,
+      "label": "Grade 12"
+    }
+  },
+  {
+    "model": "core.section",
+    "pk": 17,
+    "fields": {
+      "grade_level": 11,
+      "name": "Sampaguita",
+      "strand": null,
+      "adviser": 5
+    }
+  },
+  {
+    "model": "core.section",
+    "pk": 18,
+    "fields": {
+      "grade_level": 11,
+      "name": "Rosal",
+      "strand": null,
+      "adviser": 6
+    }
+  },
+  {
+    "model": "core.section",
+    "pk": 19,
+    "fields": {
+      "grade_level": 12,
+      "name": "Adelfa",
+      "strand": null,
+      "adviser": 7
+    }
+  },
+  {
+    "model": "core.section",
+    "pk": 20,
+    "fields": {
+      "grade_level": 12,
+      "name": "Ilang-Ilang",
+      "strand": null,
+      "adviser": 8
+    }
+  },
+  {
+    "model": "core.section",
+    "pk": 21,
+    "fields": {
+      "grade_level": 15,
+      "name": "St. Jude",
+      "strand": "STEM",
+      "adviser": 5
+    }
+  },
+  {
+    "model": "core.section",
+    "pk": 22,
+    "fields": {
+      "grade_level": 15,
+      "name": "St. Therese",
+      "strand": "ABM",
+      "adviser": 6
+    }
+  },
+  {
+    "model": "core.learner",
+    "pk": 23,
+    "fields": {
+      "lrn": "136728140987",
+      "first_name": "Juan",
+      "middle_initial": "M",
+      "last_name": "Dela Cruz",
+      "birth_date": "2012-03-15",
+      "sex": "M",
+      "section": 17,
+      "gpa": "92.00",
+      "attendance_rate": "96.40",
+      "barcode_value": "136728140987",
+      "barcode_active": true,
+      "parent_account": 9,
+      "parent_phone": "+63 917 123 4567",
+      "parent_messenger_psid": "test_psid_001",
+      "enrolled_at": "2025-08-26T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.learner",
+    "pk": 24,
+    "fields": {
+      "lrn": "136728140988",
+      "first_name": "Carlo",
+      "middle_initial": "P",
+      "last_name": "Villanueva",
+      "birth_date": "2012-05-20",
+      "sex": "M",
+      "section": 17,
+      "gpa": "87.00",
+      "attendance_rate": "95.80",
+      "barcode_value": "136728140988",
+      "barcode_active": true,
+      "enrolled_at": "2025-08-26T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.learner",
+    "pk": 25,
+    "fields": {
+      "lrn": "136728140989",
+      "first_name": "Bea",
+      "middle_initial": "L",
+      "last_name": "Soriano",
+      "birth_date": "2012-07-10",
+      "sex": "F",
+      "section": 17,
+      "gpa": "90.00",
+      "attendance_rate": "97.10",
+      "barcode_value": "136728140989",
+      "barcode_active": true,
+      "parent_account": 9,
+      "parent_phone": "+63 917 123 4567",
+      "parent_messenger_psid": "test_psid_001",
+      "enrolled_at": "2025-08-26T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.learner",
+    "pk": 26,
+    "fields": {
+      "lrn": "136728140098",
+      "first_name": "Marco",
+      "middle_initial": "T",
+      "last_name": "Reyes",
+      "birth_date": "2012-02-28",
+      "sex": "M",
+      "section": 18,
+      "gpa": "68.00",
+      "attendance_rate": "88.20",
+      "barcode_value": "136728140098",
+      "barcode_active": true,
+      "enrolled_at": "2025-08-26T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.learner",
+    "pk": 27,
+    "fields": {
+      "lrn": "136728140455",
+      "first_name": "Karina",
+      "middle_initial": "B",
+      "last_name": "Bautista",
+      "birth_date": "2011-04-12",
+      "sex": "F",
+      "section": 19,
+      "gpa": "86.00",
+      "attendance_rate": "92.00",
+      "barcode_value": "136728140455",
+      "barcode_active": true,
+      "enrolled_at": "2025-08-26T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.learner",
+    "pk": 28,
+    "fields": {
+      "lrn": "136728140067",
+      "first_name": "Liza",
+      "middle_initial": "R",
+      "last_name": "Bautista",
+      "birth_date": "2009-06-18",
+      "sex": "F",
+      "section": 21,
+      "gpa": "94.00",
+      "attendance_rate": "96.80",
+      "barcode_value": "136728140067",
+      "barcode_active": true,
+      "enrolled_at": "2025-08-26T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.subject",
+    "pk": 29,
+    "fields": {
+      "section": 17,
+      "teacher": 5,
+      "name": "Math",
+      "quarter_weight_quiz": "30.00",
+      "quarter_weight_exam": "40.00",
+      "quarter_weight_activity": "30.00"
+    }
+  },
+  {
+    "model": "core.subject",
+    "pk": 30,
+    "fields": {
+      "section": 17,
+      "teacher": 5,
+      "name": "Science",
+      "quarter_weight_quiz": "30.00",
+      "quarter_weight_exam": "40.00",
+      "quarter_weight_activity": "30.00"
+    }
+  },
+  {
+    "model": "core.subject",
+    "pk": 31,
+    "fields": {
+      "section": 17,
+      "teacher": 5,
+      "name": "English",
+      "quarter_weight_quiz": "30.00",
+      "quarter_weight_exam": "40.00",
+      "quarter_weight_activity": "30.00"
+    }
+  },
+  {
+    "model": "core.subject",
+    "pk": 32,
+    "fields": {
+      "section": 17,
+      "teacher": 5,
+      "name": "Filipino",
+      "quarter_weight_quiz": "30.00",
+      "quarter_weight_exam": "40.00",
+      "quarter_weight_activity": "30.00"
+    }
+  },
+  {
+    "model": "core.subject",
+    "pk": 33,
+    "fields": {
+      "section": 17,
+      "teacher": 5,
+      "name": "AP",
+      "quarter_weight_quiz": "30.00",
+      "quarter_weight_exam": "40.00",
+      "quarter_weight_activity": "30.00"
+    }
+  },
+  {
+    "model": "core.subject",
+    "pk": 34,
+    "fields": {
+      "section": 17,
+      "teacher": 5,
+      "name": "MAPEH",
+      "quarter_weight_quiz": "30.00",
+      "quarter_weight_exam": "40.00",
+      "quarter_weight_activity": "30.00"
+    }
+  },
+  {
+    "model": "core.subject",
+    "pk": 35,
+    "fields": {
+      "section": 17,
+      "teacher": 5,
+      "name": "Values Ed",
+      "quarter_weight_quiz": "30.00",
+      "quarter_weight_exam": "40.00",
+      "quarter_weight_activity": "30.00"
+    }
+  },
+  {
+    "model": "core.subject",
+    "pk": 36,
+    "fields": {
+      "section": 17,
+      "teacher": 5,
+      "name": "TLE",
+      "quarter_weight_quiz": "30.00",
+      "quarter_weight_exam": "40.00",
+      "quarter_weight_activity": "30.00"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 37,
+    "fields": {
+      "learner": 23,
+      "subject": 29,
+      "quarter": 1,
+      "quiz_score": "87",
+      "exam_score": "89",
+      "activity_score": "90",
+      "computed_grade": "89",
+      "created_at": "2026-03-15T10:00:00Z",
+      "updated_at": "2026-03-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 38,
+    "fields": {
+      "learner": 23,
+      "subject": 29,
+      "quarter": 2,
+      "quiz_score": "89",
+      "exam_score": "91",
+      "activity_score": "92",
+      "computed_grade": "91",
+      "created_at": "2026-04-15T10:00:00Z",
+      "updated_at": "2026-04-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 39,
+    "fields": {
+      "learner": 23,
+      "subject": 29,
+      "quarter": 3,
+      "quiz_score": "90",
+      "exam_score": "92",
+      "activity_score": "93",
+      "computed_grade": "92",
+      "created_at": "2026-05-15T10:00:00Z",
+      "updated_at": "2026-05-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 40,
+    "fields": {
+      "learner": 23,
+      "subject": 30,
+      "quarter": 1,
+      "quiz_score": "85",
+      "exam_score": "87",
+      "activity_score": "88",
+      "computed_grade": "87",
+      "created_at": "2026-03-15T10:00:00Z",
+      "updated_at": "2026-03-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 41,
+    "fields": {
+      "learner": 23,
+      "subject": 30,
+      "quarter": 2,
+      "quiz_score": "86",
+      "exam_score": "88",
+      "activity_score": "89",
+      "computed_grade": "88",
+      "created_at": "2026-04-15T10:00:00Z",
+      "updated_at": "2026-04-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 42,
+    "fields": {
+      "learner": 23,
+      "subject": 30,
+      "quarter": 3,
+      "quiz_score": "88",
+      "exam_score": "90",
+      "activity_score": "91",
+      "computed_grade": "90",
+      "created_at": "2026-05-15T10:00:00Z",
+      "updated_at": "2026-05-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 43,
+    "fields": {
+      "learner": 23,
+      "subject": 31,
+      "quarter": 1,
+      "quiz_score": "83",
+      "exam_score": "85",
+      "activity_score": "86",
+      "computed_grade": "85",
+      "created_at": "2026-03-15T10:00:00Z",
+      "updated_at": "2026-03-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 44,
+    "fields": {
+      "learner": 23,
+      "subject": 31,
+      "quarter": 2,
+      "quiz_score": "85",
+      "exam_score": "87",
+      "activity_score": "88",
+      "computed_grade": "87",
+      "created_at": "2026-04-15T10:00:00Z",
+      "updated_at": "2026-04-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 45,
+    "fields": {
+      "learner": 23,
+      "subject": 31,
+      "quarter": 3,
+      "quiz_score": "86",
+      "exam_score": "88",
+      "activity_score": "89",
+      "computed_grade": "88",
+      "created_at": "2026-05-15T10:00:00Z",
+      "updated_at": "2026-05-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 46,
+    "fields": {
+      "learner": 23,
+      "subject": 32,
+      "quarter": 1,
+      "quiz_score": "89",
+      "exam_score": "91",
+      "activity_score": "92",
+      "computed_grade": "91",
+      "created_at": "2026-03-15T10:00:00Z",
+      "updated_at": "2026-03-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 47,
+    "fields": {
+      "learner": 23,
+      "subject": 32,
+      "quarter": 2,
+      "quiz_score": "91",
+      "exam_score": "93",
+      "activity_score": "94",
+      "computed_grade": "93",
+      "created_at": "2026-04-15T10:00:00Z",
+      "updated_at": "2026-04-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.grade",
+    "pk": 48,
+    "fields": {
+      "learner": 23,
+      "subject": 32,
+      "quarter": 3,
+      "quiz_score": "92",
+      "exam_score": "94",
+      "activity_score": "95",
+      "computed_grade": "94",
+      "created_at": "2026-05-15T10:00:00Z",
+      "updated_at": "2026-05-15T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 49,
+    "fields": {
+      "learner": 23,
+      "date": "2026-04-28",
+      "time_in_morning": "07:38:00",
+      "time_out_afternoon": "16:05:00",
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "present",
+      "created_at": "2026-04-28T07:38:00Z",
+      "updated_at": "2026-04-28T07:38:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 50,
+    "fields": {
+      "learner": 23,
+      "date": "2026-04-29",
+      "time_in_morning": "07:41:00",
+      "time_out_afternoon": "16:10:00",
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "present",
+      "created_at": "2026-04-29T07:41:00Z",
+      "updated_at": "2026-04-29T07:41:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 51,
+    "fields": {
+      "learner": 23,
+      "date": "2026-04-30",
+      "time_in_morning": "08:15:00",
+      "time_out_afternoon": "16:00:00",
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "late",
+      "created_at": "2026-04-30T08:15:00Z",
+      "updated_at": "2026-04-30T08:15:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 52,
+    "fields": {
+      "learner": 23,
+      "date": "2026-05-05",
+      "time_in_morning": "07:35:00",
+      "time_out_afternoon": "16:08:00",
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "present",
+      "created_at": "2026-05-05T07:35:00Z",
+      "updated_at": "2026-05-05T07:35:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 53,
+    "fields": {
+      "learner": 23,
+      "date": "2026-05-06",
+      "time_in_morning": "07:42:00",
+      "time_out_afternoon": "16:05:00",
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "present",
+      "created_at": "2026-05-06T07:42:00Z",
+      "updated_at": "2026-05-06T07:42:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 54,
+    "fields": {
+      "learner": 23,
+      "date": "2026-05-07",
+      "time_in_morning": "07:39:00",
+      "time_out_afternoon": "16:10:00",
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "present",
+      "created_at": "2026-05-07T07:39:00Z",
+      "updated_at": "2026-05-07T07:39:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 55,
+    "fields": {
+      "learner": 23,
+      "date": "2026-05-08",
+      "time_in_morning": "07:40:00",
+      "time_out_afternoon": "16:05:00",
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "present",
+      "created_at": "2026-05-08T07:40:00Z",
+      "updated_at": "2026-05-08T07:40:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 56,
+    "fields": {
+      "learner": 23,
+      "date": "2026-05-09",
+      "time_in_morning": null,
+      "time_out_afternoon": null,
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "absent",
+      "created_at": "2026-05-09T08:00:00Z",
+      "updated_at": "2026-05-09T08:00:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 57,
+    "fields": {
+      "learner": 23,
+      "date": "2026-05-10",
+      "time_in_morning": "07:38:00",
+      "time_out_afternoon": "16:10:00",
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "present",
+      "created_at": "2026-05-10T07:38:00Z",
+      "updated_at": "2026-05-10T07:38:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 58,
+    "fields": {
+      "learner": 26,
+      "date": "2026-05-06",
+      "time_in_morning": null,
+      "time_out_afternoon": null,
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "absent",
+      "created_at": "2026-05-06T08:00:00Z",
+      "updated_at": "2026-05-06T08:00:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 59,
+    "fields": {
+      "learner": 26,
+      "date": "2026-05-07",
+      "time_in_morning": null,
+      "time_out_afternoon": null,
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "absent",
+      "created_at": "2026-05-07T08:00:00Z",
+      "updated_at": "2026-05-07T08:00:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 60,
+    "fields": {
+      "learner": 26,
+      "date": "2026-05-08",
+      "time_in_morning": null,
+      "time_out_afternoon": null,
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "absent",
+      "created_at": "2026-05-08T08:00:00Z",
+      "updated_at": "2026-05-08T08:00:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 61,
+    "fields": {
+      "learner": 26,
+      "date": "2026-05-09",
+      "time_in_morning": null,
+      "time_out_afternoon": null,
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "absent",
+      "created_at": "2026-05-09T08:00:00Z",
+      "updated_at": "2026-05-09T08:00:00Z"
+    }
+  },
+  {
+    "model": "core.attendancerecord",
+    "pk": 62,
+    "fields": {
+      "learner": 26,
+      "date": "2026-05-10",
+      "time_in_morning": null,
+      "time_out_afternoon": null,
+      "time_in_afternoon": null,
+      "time_out_morning": null,
+      "status": "absent",
+      "created_at": "2026-05-10T08:00:00Z",
+      "updated_at": "2026-05-10T08:00:00Z"
+    }
+  },
+  {
+    "model": "core.conductlog",
+    "pk": 63,
+    "fields": {
+      "learner": 23,
+      "date": "2026-05-05",
+      "item": "Participated actively in Science Lab",
+      "type": "Positive",
+      "recorded_by": 5,
+      "created_at": "2026-05-05T14:00:00Z"
+    }
+  },
+  {
+    "model": "core.conductlog",
+    "pk": 64,
+    "fields": {
+      "learner": 23,
+      "date": "2026-04-28",
+      "item": "Submitted group project on time",
+      "type": "Positive",
+      "recorded_by": 5,
+      "created_at": "2026-04-28T14:00:00Z"
+    }
+  },
+  {
+    "model": "core.conductlog",
+    "pk": 65,
+    "fields": {
+      "learner": 23,
+      "date": "2026-04-12",
+      "item": "Late arrival — 8:15 AM",
+      "type": "Note",
+      "recorded_by": 5,
+      "created_at": "2026-04-12T14:00:00Z"
+    }
+  },
+  {
+    "model": "core.conductlog",
+    "pk": 66,
+    "fields": {
+      "learner": 26,
+      "date": "2026-05-08",
+      "item": "4th consecutive absence — referral to guidance",
+      "type": "Warning",
+      "recorded_by": 6,
+      "created_at": "2026-05-08T14:00:00Z"
+    }
+  },
+  {
+    "model": "core.idtemplate",
+    "pk": 67,
+    "fields": {
+      "name": "SY 2025-2026 Template",
+      "background_path": "/templates/id_background_2025.png",
+      "font_color": "#FFFFFF",
+      "is_active": true,
+      "created_at": "2025-08-20T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.idprintqueue",
+    "pk": 68,
+    "fields": {
+      "learner": 23,
+      "template": 67,
+      "reason": "lost",
+      "status": "pending",
+      "requested_by": 4,
+      "requested_at": "2026-05-08T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.idprintqueue",
+    "pk": 69,
+    "fields": {
+      "learner": 27,
+      "template": 67,
+      "reason": "damaged",
+      "status": "approved",
+      "requested_by": 4,
+      "requested_at": "2026-05-07T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.notificationrecord",
+    "pk": 70,
+    "fields": {
+      "parent": 9,
+      "learner": 23,
+      "channel": "messenger",
+      "status": "sent",
+      "message": "Juan pumasok sa paaralan ngayong 7:38 AM — May 10",
+      "triggered_by": "attendance_scan",
+      "sent_at": "2026-05-10T07:38:00Z"
+    }
+  },
+  {
+    "model": "core.notificationrecord",
+    "pk": 71,
+    "fields": {
+      "parent": 9,
+      "learner": 23,
+      "channel": "messenger",
+      "status": "sent",
+      "message": "Bagong marka para kay Juan: Math Q3 = 92",
+      "triggered_by": "grade_posted",
+      "sent_at": "2026-05-09T14:00:00Z"
+    }
+  },
+  {
+    "model": "core.notificationrecord",
+    "pk": 72,
+    "fields": {
+      "parent": 9,
+      "learner": 25,
+      "channel": "messenger",
+      "status": "sent",
+      "message": "Bea pumasok sa paaralan ngayong 7:42 AM — May 10",
+      "triggered_by": "attendance_scan",
+      "sent_at": "2026-05-10T07:42:00Z"
+    }
+  },
+  {
+    "model": "core.schoolcalendar",
+    "pk": 73,
+    "fields": {
+      "date": "2026-04-09",
+      "type": "holiday",
+      "label": "Araw ng Kagitingan"
+    }
+  },
+  {
+    "model": "core.schoolcalendar",
+    "pk": 74,
+    "fields": {
+      "date": "2026-04-10",
+      "type": "holiday",
+      "label": "Maundy Thursday"
+    }
+  },
+  {
+    "model": "core.schoolcalendar",
+    "pk": 75,
+    "fields": {
+      "date": "2026-05-01",
+      "type": "holiday",
+      "label": "Labor Day"
+    }
+  }
+]

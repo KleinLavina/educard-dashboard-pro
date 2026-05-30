@@ -1,0 +1,6 @@
+# ============================================================================
+# EduCard Pro - Install These Packages NOW
+# ============================================================================
+# These are the essential packages needed for current development
+
+Django==5.0.7
