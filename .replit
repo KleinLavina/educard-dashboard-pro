@@ -58,3 +58,7 @@ waitForPort = 8000
 deploymentTarget = "autoscale"
 run = ["bash", "-c", "cd educard-BACKEND && python manage.py runserver localhost:8000 & cd educard-FRONTEND && npm run build && npm run preview -- --host 0.0.0.0 --port 5000"]
 build = ["bash", "-c", "cd educard-FRONTEND && npm install && npm run build"]
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 120000
