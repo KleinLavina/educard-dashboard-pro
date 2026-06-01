@@ -16,6 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PrincipalRouteImport } from './routes/principal'
 import { Route as MyChildrenRouteImport } from './routes/my-children'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IdCardsRouteImport } from './routes/id-cards'
 import { Route as GradesRouteImport } from './routes/grades'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -57,6 +58,11 @@ const PrincipalRoute = PrincipalRouteImport.update({
 const MyChildrenRoute = MyChildrenRouteImport.update({
   id: '/my-children',
   path: '/my-children',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IdCardsRoute = IdCardsRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
+  '/login': typeof LoginRoute
   '/my-children': typeof MyChildrenRoute
   '/principal': typeof PrincipalRoute
   '/reports': typeof ReportsRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
+  '/login': typeof LoginRoute
   '/my-children': typeof MyChildrenRoute
   '/principal': typeof PrincipalRoute
   '/reports': typeof ReportsRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/grades': typeof GradesRoute
   '/id-cards': typeof IdCardsRoute
+  '/login': typeof LoginRoute
   '/my-children': typeof MyChildrenRoute
   '/principal': typeof PrincipalRoute
   '/reports': typeof ReportsRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/grades'
     | '/id-cards'
+    | '/login'
     | '/my-children'
     | '/principal'
     | '/reports'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/grades'
     | '/id-cards'
+    | '/login'
     | '/my-children'
     | '/principal'
     | '/reports'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/grades'
     | '/id-cards'
+    | '/login'
     | '/my-children'
     | '/principal'
     | '/reports'
@@ -203,6 +215,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   GradesRoute: typeof GradesRoute
   IdCardsRoute: typeof IdCardsRoute
+  LoginRoute: typeof LoginRoute
   MyChildrenRoute: typeof MyChildrenRoute
   PrincipalRoute: typeof PrincipalRoute
   ReportsRoute: typeof ReportsRoute
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/my-children'
       fullPath: '/my-children'
       preLoaderRoute: typeof MyChildrenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/id-cards': {
@@ -323,6 +343,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   GradesRoute: GradesRoute,
   IdCardsRoute: IdCardsRoute,
+  LoginRoute: LoginRoute,
   MyChildrenRoute: MyChildrenRoute,
   PrincipalRoute: PrincipalRoute,
   ReportsRoute: ReportsRoute,

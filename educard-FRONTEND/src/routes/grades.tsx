@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
 import { SCHOOL_NAME, SCHOOL_YEAR, SF2_TARGET, fullName, allSections, allLearners, gradeRecords } from "@/lib/school-data";
 import { useRole } from "@/lib/role-context";
+import { useSections, useLearners } from "@/lib/use-api";
 
 export const Route = createFileRoute("/grades")({
   component: GradesPage,
@@ -137,16 +138,44 @@ function ParentGrades() {
 
 /* ─── Principal: school-wide overview ────────────────────── */
 function PrincipalGradeOverview() {
-  const sectionAvgs = allSections.map((s) => {
-    const avg = s.section.learners.length
-      ? s.section.learners.reduce((a, l) => a + l.gpa, 0) / s.section.learners.length
+  const sectionsQuery = useSections();
+  const learnersQuery = useLearners();
+
+  const apiSections = sectionsQuery.data ?? [];
+  const apiLearners = learnersQuery.data?.results ?? [];
+  const hasApiData = apiSections.length > 0 || apiLearners.length > 0;
+
+  const learnerList = hasApiData
+    ? apiLearners.map(l => ({ gpa: Number(l.gpa ?? 0), section: l.section }))
+    : allLearners.map(l => ({ gpa: l.learner.gpa, section: l.section.id as unknown as number }));
+
+  const sectionList = hasApiData
+    ? apiSections.map(s => ({
+        id: s.id,
+        label: s.label,
+        adviser: s.adviser_name ?? '—',
+        enrolled: s.enrollment_count,
+      }))
+    : allSections.map(s => ({
+        id: s.section.id as unknown as number,
+        label: s.label,
+        adviser: s.section.adviser,
+        enrolled: s.enrolled,
+      }));
+
+  const sectionAvgs = sectionList.map(s => {
+    const sLearners = learnerList.filter(l => l.section === s.id);
+    const avg = sLearners.length
+      ? sLearners.reduce((a, l) => a + l.gpa, 0) / sLearners.length
       : 0;
     return { name: s.label.split(" - ").slice(1).join("-") || s.label, avg: Number(avg.toFixed(1)), below: avg < 75 };
   });
 
-  const schoolAvg = allLearners.reduce((a, l) => a + l.learner.gpa, 0) / allLearners.length;
-  const above90 = allLearners.filter((l) => l.learner.gpa >= 90).length;
-  const below75 = allLearners.filter((l) => l.learner.gpa < 75).length;
+  const schoolAvg = learnerList.length
+    ? learnerList.reduce((a, l) => a + l.gpa, 0) / learnerList.length
+    : 0;
+  const above90 = learnerList.filter(l => l.gpa >= 90).length;
+  const below75 = learnerList.filter(l => l.gpa < 75).length;
   
   const [auditLogOpen, setAuditLogOpen] = useState(false);
   const [distributionOpen, setDistributionOpen] = useState(false);
@@ -158,12 +187,11 @@ function PrincipalGradeOverview() {
     { date: "May 8, 2026 10:20 AM", user: "Ms. Elena Reyes", action: "Updated", student: "Bea L. Soriano", subject: "English Q3", oldGrade: 87, newGrade: 88, reason: "Rechecked essay score" },
   ];
 
-  // Grade distribution data
   const distribution = [
     { range: "90-100", count: above90, color: "var(--color-chart-2)" },
-    { range: "85-89", count: allLearners.filter(l => l.learner.gpa >= 85 && l.learner.gpa < 90).length, color: "var(--color-chart-1)" },
-    { range: "80-84", count: allLearners.filter(l => l.learner.gpa >= 80 && l.learner.gpa < 85).length, color: "var(--color-chart-3)" },
-    { range: "75-79", count: allLearners.filter(l => l.learner.gpa >= 75 && l.learner.gpa < 80).length, color: "var(--color-chart-4)" },
+    { range: "85-89", count: learnerList.filter(l => l.gpa >= 85 && l.gpa < 90).length, color: "var(--color-chart-1)" },
+    { range: "80-84", count: learnerList.filter(l => l.gpa >= 80 && l.gpa < 85).length, color: "var(--color-chart-3)" },
+    { range: "75-79", count: learnerList.filter(l => l.gpa >= 75 && l.gpa < 80).length, color: "var(--color-chart-4)" },
     { range: "Below 75", count: below75, color: "var(--color-destructive)" },
   ];
 
@@ -176,7 +204,7 @@ function PrincipalGradeOverview() {
             { label: "School Avg GPA", value: schoolAvg.toFixed(1), accent: "text-chart-1" },
             { label: "With Honors (≥90)", value: above90, accent: "text-chart-2" },
             { label: "At Risk (<75)", value: below75, accent: "text-destructive" },
-            { label: "Sections Tracked", value: allSections.length, accent: "text-chart-3" },
+            { label: "Sections Tracked", value: sectionList.length, accent: "text-chart-3" },
           ].map((m) => (
             <Card key={m.label} className="border-border/60">
               <CardContent className="p-5">
@@ -249,19 +277,20 @@ function PrincipalGradeOverview() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {allSections.map((s) => {
-                    const gpas = s.section.learners.map((l) => l.gpa);
+                  {sectionList.map((s) => {
+                    const sLearners = learnerList.filter(l => l.section === s.id);
+                    const gpas = sLearners.map(l => l.gpa);
                     const avg = gpas.length ? gpas.reduce((a, v) => a + v, 0) / gpas.length : 0;
                     const high = gpas.length ? Math.max(...gpas) : 0;
                     const low = gpas.length ? Math.min(...gpas) : 0;
                     return (
-                      <TableRow key={s.section.id}>
+                      <TableRow key={s.id}>
                         <TableCell className="font-medium whitespace-nowrap">{s.label}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{s.section.adviser}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{s.adviser}</TableCell>
                         <TableCell className="text-center">{s.enrolled}</TableCell>
                         <TableCell className={`text-right font-semibold ${avg < 75 ? "text-destructive" : ""}`}>{avg.toFixed(1)}</TableCell>
-                        <TableCell className="text-right text-chart-2 font-semibold">{high}</TableCell>
-                        <TableCell className={`text-right font-semibold ${low < 75 ? "text-destructive" : ""}`}>{low}</TableCell>
+                        <TableCell className="text-right text-chart-2 font-semibold">{high || '—'}</TableCell>
+                        <TableCell className={`text-right font-semibold ${low < 75 && low > 0 ? "text-destructive" : ""}`}>{low || '—'}</TableCell>
                         <TableCell>
                           <Badge variant={avg < 75 ? "destructive" : avg >= 90 ? "default" : "secondary"}>
                             {avg >= 90 ? "With Honors" : avg >= 75 ? "Passing" : "Needs Attention"}

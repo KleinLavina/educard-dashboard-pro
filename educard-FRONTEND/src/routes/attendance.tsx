@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
 import { SCHOOL_NAME, SCHOOL_YEAR, SF2_TARGET, fullName, allSections, allLearners, attendanceLogs } from "@/lib/school-data";
 import { useRole } from "@/lib/role-context";
+import { useSections, useLearners } from "@/lib/use-api";
 
 export const Route = createFileRoute("/attendance")({
   component: AttendancePage,
@@ -116,13 +117,51 @@ function ParentAttendance() {
 
 /* ─── Principal: SF2 section matrix ─────────────────────── */
 function PrincipalSF2() {
-  const belowCount = allSections.filter((s) => s.belowTarget).length;
-  const overallAtt = allLearners.reduce((a, l) => a + l.learner.attendanceRate, 0) / allLearners.length;
+  const sectionsQuery = useSections();
+  const learnersQuery = useLearners();
+
+  const apiSections = sectionsQuery.data ?? [];
+  const apiLearners = learnersQuery.data?.results ?? [];
+  const hasApiData = apiSections.length > 0;
+
+  const sectionList = hasApiData
+    ? apiSections.map(s => ({
+        id: String(s.id),
+        label: s.label,
+        adviser: s.adviser_name ?? '—',
+        enrolled: s.enrollment_count,
+        attendance: Number(s.average_attendance ?? 0),
+        belowTarget: s.below_sf2_target,
+      }))
+    : allSections.map(s => ({
+        id: s.section.id,
+        label: s.label,
+        adviser: s.section.adviser,
+        enrolled: s.enrolled,
+        attendance: s.attendance,
+        belowTarget: s.belowTarget,
+      }));
+
+  const belowCount = sectionList.filter(s => s.belowTarget).length;
+  const overallAtt = hasApiData
+    ? (apiLearners.length
+        ? apiLearners.reduce((a, l) => a + Number(l.attendance_rate ?? 0), 0) / apiLearners.length
+        : apiSections.reduce((a, s) => a + Number(s.average_attendance ?? 0), 0) / (apiSections.length || 1))
+    : allLearners.reduce((a, l) => a + l.learner.attendanceRate, 0) / allLearners.length;
+
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
-  const selectedSection = selectedSectionId ? allSections.find(s => s.section.id === selectedSectionId) : null;
-  const sectionStudents = selectedSection ? selectedSection.section.learners : [];
+  const selectedSection = selectedSectionId ? sectionList.find(s => s.id === selectedSectionId) : null;
+
+  const apiSectionLearners = hasApiData && selectedSectionId
+    ? apiLearners.filter(l => String(l.section) === selectedSectionId)
+    : [];
+
+  const selectedMock = !hasApiData && selectedSectionId
+    ? allSections.find(s => s.section.id === selectedSectionId)
+    : null;
+  const sectionStudents = selectedMock ? selectedMock.section.learners : [];
 
   const handleExportSF2 = () => {
     toast.success("SF2 Report exported successfully", {
@@ -138,8 +177,8 @@ function PrincipalSF2() {
         <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[
             { label: "Campus Avg", value: `${overallAtt.toFixed(1)}%`, accent: "text-chart-2", sub: `SF2 target ${SF2_TARGET}%` },
-            { label: "Total Sections", value: allSections.length, accent: "text-chart-3", sub: "All grade levels" },
-            { label: "On Target", value: allSections.length - belowCount, accent: "text-chart-2", sub: `≥ ${SF2_TARGET}% attendance` },
+            { label: "Total Sections", value: sectionList.length, accent: "text-chart-3", sub: "All grade levels" },
+            { label: "On Target", value: sectionList.length - belowCount, accent: "text-chart-2", sub: `≥ ${SF2_TARGET}% attendance` },
             { label: "Below Target", value: belowCount, accent: "text-destructive", sub: `< ${SF2_TARGET}% attendance` },
           ].map((m) => (
             <Card key={m.label} className="border-border/60">
@@ -169,15 +208,15 @@ function PrincipalSF2() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {allSections.map((s) => (
-                <div 
-                  key={s.section.id} 
+              {sectionList.map((s) => (
+                <div
+                  key={s.id}
                   className={`flex items-center gap-4 rounded-xl border p-4 cursor-pointer transition-colors ${s.belowTarget ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10" : "border-border/60 bg-card hover:bg-muted/40"}`}
-                  onClick={() => setSelectedSectionId(s.section.id)}
+                  onClick={() => setSelectedSectionId(s.id)}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm">{s.label}</p>
-                    <p className="text-xs text-muted-foreground">Adviser: {s.section.adviser} · {s.enrolled} learners</p>
+                    <p className="text-xs text-muted-foreground">Adviser: {s.adviser} · {s.enrolled} learners</p>
                   </div>
                   <div className="hidden sm:block text-right text-sm">
                     <p className="font-ui text-[10px] uppercase text-muted-foreground">SF2 Rate</p>
@@ -214,7 +253,7 @@ function PrincipalSF2() {
                 <SheetHeader>
                   <SheetTitle>{selectedSection.label}</SheetTitle>
                   <p className="text-sm text-muted-foreground">
-                    {selectedSection.section.adviser} · {selectedSection.enrolled} students
+                    {selectedSection.adviser} · {selectedSection.enrolled} students
                   </p>
                 </SheetHeader>
 
@@ -248,33 +287,62 @@ function PrincipalSF2() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {sectionStudents.map((student) => {
-                          const studentLogs = attendanceLogs.filter(log => log.lrn === student.lrn);
-                          const presentCount = studentLogs.filter(log => log.status === "present").length;
-                          const totalDays = studentLogs.length;
-                          const rate = totalDays > 0 ? (presentCount / totalDays) * 100 : 0;
-                          const belowTarget = rate < SF2_TARGET;
-
-                          return (
-                            <div key={student.lrn} className="flex items-center justify-between rounded-lg border p-3">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">{fullName(student)}</p>
-                                <p className="text-xs text-muted-foreground">LRN: {student.lrn}</p>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <div className="text-right">
-                                  <p className="text-xs text-muted-foreground">{presentCount}/{totalDays} days</p>
-                                  <p className={`text-sm font-semibold ${belowTarget ? "text-destructive" : "text-chart-2"}`}>
-                                    {rate.toFixed(1)}%
-                                  </p>
+                        {hasApiData ? (
+                          apiSectionLearners.length === 0 ? (
+                            <p className="py-4 text-center text-sm text-muted-foreground">No students found for this section</p>
+                          ) : (
+                            apiSectionLearners.map(student => {
+                              const rate = Number(student.attendance_rate ?? 0);
+                              const belowTarget = rate < SF2_TARGET;
+                              return (
+                                <div key={student.lrn} className="flex items-center justify-between rounded-lg border p-3">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">{student.full_name}</p>
+                                    <p className="text-xs text-muted-foreground">LRN: {student.lrn}</p>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                    <div className="text-right">
+                                      <p className="text-xs text-muted-foreground">Attendance rate</p>
+                                      <p className={`text-sm font-semibold ${belowTarget ? "text-destructive" : "text-chart-2"}`}>
+                                        {rate.toFixed(1)}%
+                                      </p>
+                                    </div>
+                                    <Badge variant={belowTarget ? "destructive" : "secondary"}>
+                                      {belowTarget ? "At Risk" : "Good"}
+                                    </Badge>
+                                  </div>
                                 </div>
-                                <Badge variant={belowTarget ? "destructive" : "secondary"}>
-                                  {belowTarget ? "At Risk" : "Good"}
-                                </Badge>
+                              );
+                            })
+                          )
+                        ) : (
+                          sectionStudents.map(student => {
+                            const studentLogs = attendanceLogs.filter(log => log.lrn === student.lrn);
+                            const presentCount = studentLogs.filter(log => log.status === "present").length;
+                            const totalDays = studentLogs.length;
+                            const rate = totalDays > 0 ? (presentCount / totalDays) * 100 : 0;
+                            const belowTarget = rate < SF2_TARGET;
+                            return (
+                              <div key={student.lrn} className="flex items-center justify-between rounded-lg border p-3">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{fullName(student)}</p>
+                                  <p className="text-xs text-muted-foreground">LRN: {student.lrn}</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <div className="text-right">
+                                    <p className="text-xs text-muted-foreground">{presentCount}/{totalDays} days</p>
+                                    <p className={`text-sm font-semibold ${belowTarget ? "text-destructive" : "text-chart-2"}`}>
+                                      {rate.toFixed(1)}%
+                                    </p>
+                                  </div>
+                                  <Badge variant={belowTarget ? "destructive" : "secondary"}>
+                                    {belowTarget ? "At Risk" : "Good"}
+                                  </Badge>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -297,11 +365,11 @@ function PrincipalSF2() {
               <div className="space-y-2 rounded-lg border p-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total Sections:</span>
-                  <span className="font-semibold">{allSections.length}</span>
+                  <span className="font-semibold">{sectionList.length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total Students:</span>
-                  <span className="font-semibold">{allLearners.length}</span>
+                  <span className="font-semibold">{apiLearners.length || allLearners.length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Campus Average:</span>

@@ -1,0 +1,2 @@
+- [API-mock bridge pattern](api-mock-bridge.md) — unified display model pattern used across grades/attendance/id-cards when wiring API hooks alongside mock fallback
+- [Section ID type mismatch](section-id-types.md) — mock sections use string IDs, API sections use numeric IDs; must cast when joining learners to sections

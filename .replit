@@ -13,7 +13,6 @@ externalPort = 80
 [[ports]]
 localPort = 8000
 externalPort = 8000
-exposeLocalhost = true
 
 [workflows]
 runButton = "Project"
@@ -52,7 +51,8 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd educard-BACKEND && python manage.py runserver localhost:8000"
+args = "cd educard-BACKEND && python manage.py runserver 0.0.0.0:8000"
+waitForPort = 8000
 
 [deployment]
 deploymentTarget = "autoscale"

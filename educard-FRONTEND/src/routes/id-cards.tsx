@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
-import { SCHOOL_NAME, SCHOOL_YEAR, fullName, allLearners, allSections, idPrintHistory, idReprintRequests } from "@/lib/school-data";
+import { SCHOOL_NAME, SCHOOL_YEAR, fullName, allLearners, idPrintHistory } from "@/lib/school-data";
+import { useIDQueue, useLearners, useMarkPrinted } from "@/lib/use-api";
 import { useRole } from "@/lib/role-context";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -123,9 +124,35 @@ function PrincipalIDCards() {
   const [reprintReason, setReprintReason] = useState("");
   const [customReason, setCustomReason] = useState("");
 
-  const filtered = allLearners.filter((l) => {
+  const learnersQuery = useLearners();
+  const idQueueQuery = useIDQueue();
+  const markPrinted = useMarkPrinted();
+
+  const apiLearners = learnersQuery.data?.results ?? [];
+  const queueItems = idQueueQuery.data ?? [];
+
+  const pendingRequests = queueItems.filter(i => i.status === "pending");
+  const printedCount = queueItems.filter(i => i.status === "printed").length + printed.size;
+
+  const learnerList = apiLearners.length > 0
+    ? apiLearners.map(l => ({
+        lrn: l.lrn,
+        name: l.full_name,
+        section: l.section_label ?? '—',
+        dept: (l.section_label?.startsWith('Grade 1') ? 'SHS' : 'JHS') as 'JHS' | 'SHS',
+        id: l.id,
+      }))
+    : allLearners.map(l => ({
+        lrn: l.learner.lrn,
+        name: fullName(l.learner),
+        section: l.sectionLabel,
+        dept: l.department.key as 'JHS' | 'SHS',
+        id: null as number | null,
+      }));
+
+  const filtered = learnerList.filter(l => {
     const q = search.toLowerCase();
-    return !q || fullName(l.learner).toLowerCase().includes(q) || l.learner.lrn.includes(q);
+    return !q || l.name.toLowerCase().includes(q) || l.lrn.includes(q);
   });
 
   function togglePrint(lrn: string) {
@@ -141,7 +168,7 @@ function PrincipalIDCards() {
     setReprintDialogOpen(true);
   }
 
-  function handleSubmitReprint() {
+  async function handleSubmitReprint() {
     if (!reprintReason) {
       toast.error("Please select a reason for reprint");
       return;
@@ -150,9 +177,25 @@ function PrincipalIDCards() {
       toast.error("Please provide a custom reason");
       return;
     }
-    const reason = reprintReason === "other" ? customReason : reprintReason;
-    const student = allLearners.find(l => l.learner.lrn === selectedLrn);
-    toast.success(`Reprint request submitted for ${student ? fullName(student.learner) : "student"} — Reason: ${reason}`);
+    const validApiReasons = ["new_enrollment", "lost", "damaged", "renewal"] as const;
+    const effectiveReason = reprintReason === "other" ? "damaged" : reprintReason;
+    const apiReason = (validApiReasons.includes(effectiveReason as any) ? effectiveReason : "renewal") as typeof validApiReasons[number];
+    const student = learnerList.find(l => l.lrn === selectedLrn);
+    const studentName = student?.name ?? "student";
+    if (student?.id) {
+      try {
+        const { api } = await import("@/lib/api");
+        await api.idCards.requestPrint(student.id, apiReason);
+        idQueueQuery.refetch?.();
+        toast.success(`Reprint request submitted for ${studentName} — Reason: ${effectiveReason}`);
+      } catch (err: any) {
+        const msg = err?.response?.data?.detail ?? err?.message ?? "Failed to submit reprint request.";
+        toast.error("Reprint failed", { description: msg });
+        return;
+      }
+    } else {
+      toast.success(`Reprint request submitted for ${studentName} — Reason: ${effectiveReason}`);
+    }
     setReprintDialogOpen(false);
     setReprintReason("");
     setCustomReason("");
@@ -165,10 +208,10 @@ function PrincipalIDCards() {
       <main className="space-y-6 p-4 sm:p-6">
         <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { label: "Total Cards", value: allLearners.length, accent: "text-chart-3" },
-            { label: "Printed", value: printed.size, accent: "text-chart-2" },
-            { label: "Pending", value: allLearners.length - printed.size, accent: "text-orange-500" },
-            { label: "Reprint Requests", value: idReprintRequests.filter(r => r.status === "pending").length, accent: "text-chart-1" },
+            { label: "Total Cards", value: learnerList.length, accent: "text-chart-3" },
+            { label: "Printed", value: printedCount, accent: "text-chart-2" },
+            { label: "Pending", value: learnerList.length - printedCount, accent: "text-orange-500" },
+            { label: "Reprint Requests", value: pendingRequests.length, accent: "text-chart-1" },
           ].map((m) => (
             <Card key={m.label} className="border-border/60">
               <CardContent className="p-5">
@@ -184,7 +227,7 @@ function PrincipalIDCards() {
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-base">Reprint Requests</CardTitle>
-              <p className="text-xs text-muted-foreground">{idReprintRequests.filter(r => r.status === "pending").length} pending requests</p>
+              <p className="text-xs text-muted-foreground">{pendingRequests.length} pending requests</p>
             </div>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => setPrintHistoryOpen(true)}>
@@ -196,22 +239,22 @@ function PrincipalIDCards() {
             </div>
           </CardHeader>
           <CardContent>
-            {idReprintRequests.length === 0 ? (
+            {queueItems.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
                 No reprint requests yet
               </div>
             ) : (
               <div className="space-y-3">
-                {idReprintRequests.map((req, idx) => (
-                  <div key={idx} className="flex items-center justify-between rounded-lg border bg-card p-4">
+                {queueItems.map((req) => (
+                  <div key={req.id} className="flex items-center justify-between rounded-lg border bg-card p-4">
                     <div className="flex-1">
-                      <p className="font-semibold">{req.studentName}</p>
-                      <p className="text-sm text-muted-foreground">{req.section} · LRN: {req.lrn}</p>
+                      <p className="font-semibold">{req.learner_name}</p>
+                      <p className="text-sm text-muted-foreground">{req.learner_section ?? '—'} · LRN: {req.learner_lrn}</p>
                       <div className="mt-1 flex items-center gap-2">
-                        <Badge variant={req.reason === "Lost" ? "destructive" : "secondary"} className="text-xs">
+                        <Badge variant={req.reason === "lost" ? "destructive" : "secondary"} className="text-xs capitalize">
                           {req.reason}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">Requested: {req.requestedAt}</span>
+                        <span className="text-xs text-muted-foreground">Requested: {new Date(req.requested_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -220,13 +263,16 @@ function PrincipalIDCards() {
                           <Badge variant="outline" className="text-orange-500">
                             <Clock className="mr-1 h-3 w-3" /> Pending
                           </Badge>
-                          <Button size="sm" onClick={() => toast.success(`Approved reprint for ${req.studentName}`)}>
+                          <Button size="sm" onClick={() => {
+                            markPrinted.mutate(req.id);
+                            toast.success(`Approved reprint for ${req.learner_name}`);
+                          }}>
                             Approve
                           </Button>
                         </>
                       ) : (
                         <Badge variant="outline" className="text-chart-2">
-                          <CheckCheck className="mr-1 h-3 w-3" /> Approved
+                          <CheckCheck className="mr-1 h-3 w-3" /> {req.status}
                         </Badge>
                       )}
                     </div>
@@ -256,7 +302,7 @@ function PrincipalIDCards() {
               <Button
                 size="sm"
                 style={{ background: "var(--gradient-primary)" }}
-                onClick={() => { setPrinted(new Set(allLearners.map((l) => l.learner.lrn))); setBatchDone(true); }}
+                onClick={() => { setPrinted(new Set(learnerList.map(l => l.lrn))); setBatchDone(true); }}
               >
                 <Printer className="h-4 w-4" /> Print All
               </Button>
@@ -265,35 +311,35 @@ function PrincipalIDCards() {
           <CardContent>
             {batchDone && (
               <div className="mb-4 flex items-center gap-2 rounded-lg border border-chart-2/30 bg-chart-2/10 px-4 py-3 text-sm text-chart-2">
-                <CheckCircle2 className="h-4 w-4" /> Batch print job sent — {allLearners.length} cards queued.
+                <CheckCircle2 className="h-4 w-4" /> Batch print job sent — {learnerList.length} cards queued.
               </div>
             )}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filtered.map((l) => (
-                <div key={l.learner.lrn} className="relative">
+                <div key={l.lrn} className="relative">
                   <MiniIDCard
-                    name={fullName(l.learner)}
-                    lrn={l.learner.lrn}
-                    section={l.sectionLabel}
-                    dept={l.department.key}
-                    gradient={l.department.key === "JHS" ? "var(--gradient-primary)" : "var(--gradient-accent)"}
+                    name={l.name}
+                    lrn={l.lrn}
+                    section={l.section}
+                    dept={l.dept}
+                    gradient={l.dept === "JHS" ? "var(--gradient-primary)" : "var(--gradient-accent)"}
                   />
                   <div className="mt-2 flex gap-2">
                     <button
-                      onClick={() => togglePrint(l.learner.lrn)}
+                      onClick={() => togglePrint(l.lrn)}
                       className={`flex-1 rounded-lg border py-1.5 font-ui text-[11px] uppercase tracking-wider transition-colors ${
-                        printed.has(l.learner.lrn)
+                        printed.has(l.lrn)
                           ? "border-chart-2/40 bg-chart-2/10 text-chart-2"
                           : "border-border/60 bg-card text-muted-foreground hover:bg-muted"
                       }`}
                     >
-                      {printed.has(l.learner.lrn) ? "✓ Printed" : "Mark Printed"}
+                      {printed.has(l.lrn) ? "✓ Printed" : "Mark Printed"}
                     </button>
                     <Button
                       size="sm"
                       variant="outline"
                       className="h-auto px-2 py-1.5 text-[11px]"
-                      onClick={() => handleRequestReprint(l.learner.lrn)}
+                      onClick={() => handleRequestReprint(l.lrn)}
                     >
                       Reprint
                     </Button>

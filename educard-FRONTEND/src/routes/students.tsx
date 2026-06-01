@@ -215,11 +215,6 @@ function AdminRoster() {
       return;
     }
 
-    toast.success("Student enrolled successfully", {
-      description: "ID card queued for printing",
-    });
-
-    // Call real API
     try {
       await createLearner.mutateAsync({
         lrn: enrollForm.lrn,
@@ -228,8 +223,13 @@ function AdminRoster() {
         last_name: enrollForm.lastName,
         section: Number(enrollForm.section) || undefined,
       } as any);
-    } catch {
-      // API unavailable — mock success already shown above
+      toast.success("Student enrolled successfully", {
+        description: "ID card queued for printing",
+      });
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail ?? err?.message ?? "Failed to enrol student. Please try again.";
+      toast.error("Enrolment failed", { description: msg });
+      return;
     }
     
     setEnrollForm({
