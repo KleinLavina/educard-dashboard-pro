@@ -19,7 +19,9 @@ import {
   MessageCircle,
   FileBarChart,
   Phone,
+  LogOut,
 } from "lucide-react";
+import { api } from "@/lib/api";
 import {
   Sidebar,
   SidebarContent,
@@ -68,7 +70,12 @@ function NavItem({ title, url, icon: Icon }: { title: string; url: string; icon:
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { role } = useRole();
+  const { role, setUserId } = useRole();
+
+  function handleSignOut() {
+    setUserId(null);
+    api.auth.logout();
+  }
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
 
   const [principalOpen, setPrincipalOpen] = useState(true);
@@ -275,21 +282,39 @@ export function AppSidebar() {
       {/* ── Footer ── */}
       <SidebarFooter className="border-t border-sidebar-border/40">
         {!collapsed ? (
-          <Link
-            to="/"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 font-ui text-[11px] uppercase tracking-widest text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          >
-            <Home className="h-3.5 w-3.5 shrink-0" />
-            Switch Role
-          </Link>
+          <>
+            <Link
+              to="/"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 font-ui text-[11px] uppercase tracking-widest text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
+              <Home className="h-3.5 w-3.5 shrink-0" />
+              Switch Role
+            </Link>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 font-ui text-[11px] uppercase tracking-widest text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground w-full"
+            >
+              <LogOut className="h-3.5 w-3.5 shrink-0" />
+              Sign Out
+            </button>
+          </>
         ) : (
-          <Link
-            to="/"
-            title="Switch Role"
-            className="flex items-center justify-center rounded-lg py-2 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          >
-            <Home className="h-4 w-4" />
-          </Link>
+          <>
+            <Link
+              to="/"
+              title="Switch Role"
+              className="flex items-center justify-center rounded-lg py-2 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
+              <Home className="h-4 w-4" />
+            </Link>
+            <button
+              onClick={handleSignOut}
+              title="Sign Out"
+              className="flex items-center justify-center rounded-lg py-2 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground w-full"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </>
         )}
       </SidebarFooter>
     </Sidebar>
