@@ -420,11 +420,12 @@ export const api = {
 
   // ── Grades ────────────────────────────────────────────────────────────────
   grades: {
-    list: (params?: { learner?: number; subject?: number; quarter?: number }) => {
+    list: (params?: { learner?: number; subject?: number; quarter?: number; section?: number }) => {
       const q = new URLSearchParams()
       if (params?.learner) q.set('learner', String(params.learner))
       if (params?.subject) q.set('subject', String(params.subject))
       if (params?.quarter) q.set('quarter', String(params.quarter))
+      if (params?.section) q.set('learner__section', String(params.section))
       return get<Grade[]>(`/grades/${q.toString() ? '?' + q : ''}`)
     },
     upsert: (id: number | null, data: Partial<Grade>) =>

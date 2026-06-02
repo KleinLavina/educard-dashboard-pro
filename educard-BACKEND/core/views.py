@@ -326,7 +326,7 @@ class GradeViewSet(viewsets.ModelViewSet):
     queryset = Grade.objects.select_related('learner', 'subject').all()
     serializer_class = GradeSerializer
     permission_classes = [IsTeacherOrAdmin]
-    filterset_fields = ['learner', 'subject', 'quarter']
+    filterset_fields = ['learner', 'subject', 'quarter', 'learner__section']
 
     def perform_update(self, serializer):
         """Write audit log before saving."""

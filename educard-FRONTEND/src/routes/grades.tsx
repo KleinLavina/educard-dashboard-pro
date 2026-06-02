@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { GraduationCap, TrendingUp, CheckCircle2, Save, Upload, Download, History, BarChart3, FileText, Eye } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line, PieChart, Pie,
@@ -14,9 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
-import { SCHOOL_NAME, SCHOOL_YEAR, SF2_TARGET, fullName, allSections, allLearners, gradeRecords } from "@/lib/school-data";
+import { SCHOOL_NAME, SCHOOL_YEAR, allSections, allLearners } from "@/lib/school-data";
 import { useRole } from "@/lib/role-context";
-import { useSections, useLearners } from "@/lib/use-api";
+import { Grade } from "@/lib/api";
+import { useSections, useLearners, useUpsertGrade, useSubjects, useGradesBySection } from "@/lib/use-api";
 
 export const Route = createFileRoute("/grades")({
   component: GradesPage,
@@ -398,123 +399,307 @@ function PrincipalGradeOverview() {
   );
 }
 
-/* ─── Teacher: 4-quarter grade book ──────────────────────── */
-const SUBJECTS = ["Math", "Science", "English", "Filipino", "AP", "MAPEH"];
-
-const Q_GRADES: Record<string, Record<string, [number, number, number]>> = {
-  "136728140987": { Math: [89, 91, 92], Science: [87, 88, 90], English: [85, 87, 88], Filipino: [91, 93, 94], AP: [88, 90, 91], MAPEH: [93, 94, 95] },
-  "136728140988": { Math: [82, 84, 85], Science: [80, 82, 83], English: [84, 86, 87], Filipino: [85, 87, 89], AP: [80, 83, 84], MAPEH: [86, 88, 90] },
-  "136728140989": { Math: [87, 89, 90], Science: [89, 91, 92], English: [85, 87, 88], Filipino: [88, 90, 91], AP: [85, 88, 89], MAPEH: [90, 92, 94] },
-};
-
+/* ─── Teacher: grade book — API-wired ────────────────────── */
 function TeacherGradeBook() {
-  const mySection = allSections.find((s) => s.section.id === "g7-sampaguita")!;
-  const learners = mySection.section.learners;
+  const sectionsQuery = useSections();
+  const mySection = sectionsQuery.data?.[0] ?? null;
+  const sectionId = mySection?.id ?? null;
+
+  const learnersQuery = useLearners(sectionId != null ? { section: sectionId } : undefined);
+  const learners = learnersQuery.data?.results ?? [];
+
+  const subjectsQuery = useSubjects(sectionId ?? undefined);
+  const subjects = subjectsQuery.data ?? [];
+
+  const gradesQuery = useGradesBySection(sectionId);
+  const allGradesData = gradesQuery.data ?? [];
+
+  const isLoading = sectionsQuery.isLoading || learnersQuery.isLoading || subjectsQuery.isLoading;
+
+  // grade map: learnerId → subjectId → quarter → Grade
+  const gradeMap = useMemo(() => {
+    const map: Record<number, Record<number, Record<number, Grade>>> = {};
+    for (const g of allGradesData) {
+      if (!map[g.learner]) map[g.learner] = {};
+      if (!map[g.learner][g.subject]) map[g.learner][g.subject] = {};
+      map[g.learner][g.subject][g.quarter] = g;
+    }
+    return map;
+  }, [allGradesData]);
+
+  const getGrade = (lid: number, sid: number, q: number) => gradeMap[lid]?.[sid]?.[q];
+
+  const CURRENT_Q = 3;
+
   const [editMode, setEditMode] = useState(false);
-  const [q3Grades, setQ3Grades] = useState<Record<string, Record<string, number>>>(() =>
-    Object.fromEntries(learners.map((l) => [l.lrn, Object.fromEntries(SUBJECTS.map((s) => [s, Q_GRADES[l.lrn]?.[s]?.[2] ?? 85]))]))
-  );
-  const [saved, setSaved] = useState(false);
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
   const [comparisonOpen, setComparisonOpen] = useState(false);
 
-  function save() { 
-    setEditMode(false); 
-    setSaved(true);
-    toast.success("Grades saved successfully", {
-      description: "All changes have been recorded",
-    });
+  const upsertGrade = useUpsertGrade();
+
+  function enterEditMode() {
+    const init: Record<string, string> = {};
+    for (const l of learners) {
+      for (const s of subjects) {
+        const g = getGrade(l.id, s.id, CURRENT_Q);
+        init[`${l.id}-${s.id}`] = String(g?.computed_grade != null ? Number(g.computed_grade) : 85);
+      }
+    }
+    setEdits(init);
+    setEditMode(true);
   }
 
-  // Quarter comparison data
-  const quarterComparison = SUBJECTS.map(subject => {
-    const q1Avg = learners.reduce((sum, l) => sum + (Q_GRADES[l.lrn]?.[subject]?.[0] ?? 85), 0) / learners.length;
-    const q2Avg = learners.reduce((sum, l) => sum + (Q_GRADES[l.lrn]?.[subject]?.[1] ?? 85), 0) / learners.length;
-    const q3Avg = learners.reduce((sum, l) => sum + (q3Grades[l.lrn]?.[subject] ?? 85), 0) / learners.length;
-    return { subject, Q1: Number(q1Avg.toFixed(1)), Q2: Number(q2Avg.toFixed(1)), Q3: Number(q3Avg.toFixed(1)) };
+  async function handleSave() {
+    setSaving(true);
+    const changed = Object.entries(edits).filter(([key, val]) => {
+      const [lid, sid] = key.split("-").map(Number);
+      const existing = getGrade(lid, sid, CURRENT_Q)?.computed_grade;
+      return String(existing != null ? Number(existing) : 85) !== val;
+    });
+
+    if (changed.length === 0) {
+      toast.info("No changes to save");
+      setEditMode(false);
+      setSaving(false);
+      return;
+    }
+
+    try {
+      await Promise.all(
+        changed.map(([key, val]) => {
+          const [lid, sid] = key.split("-").map(Number);
+          const existing = getGrade(lid, sid, CURRENT_Q);
+          const v = Math.min(100, Math.max(0, Number(val) || 0));
+          return upsertGrade.mutateAsync({
+            id: existing?.id ?? null,
+            data: {
+              learner: lid,
+              subject: sid,
+              quarter: CURRENT_Q,
+              quiz_score: v,
+              exam_score: v,
+              activity_score: v,
+            },
+          });
+        })
+      );
+      toast.success(`${changed.length} grade${changed.length !== 1 ? "s" : ""} saved`, {
+        description: "Changes recorded in the database",
+      });
+      setEditMode(false);
+    } catch {
+      toast.error("Failed to save grades", { description: "Please try again" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Quarter comparison data computed from API grades
+  const quarterComparison = subjects.map((s) => {
+    const avg = (q: number) => {
+      const vals = learners
+        .map((l) => {
+          if (q === CURRENT_Q && editMode) {
+            const k = `${l.id}-${s.id}`;
+            return edits[k] != null ? Number(edits[k]) : null;
+          }
+          const g = getGrade(l.id, s.id, q);
+          return g?.computed_grade != null ? Number(g.computed_grade) : null;
+        })
+        .filter((v): v is number => v !== null);
+      return vals.length ? vals.reduce((a, v) => a + v, 0) / vals.length : 0;
+    };
+    const shortName = s.name.length > 9 ? s.name.substring(0, 8) + "…" : s.name;
+    return { subject: shortName, Q1: +avg(1).toFixed(1), Q2: +avg(2).toFixed(1), Q3: +avg(3).toFixed(1) };
   });
+
+  if (isLoading) {
+    return (
+      <>
+        <PageHeader title="Grades" subtitle="Loading grade book…" />
+        <main className="p-6">
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </main>
+      </>
+    );
+  }
+
+  const sectionLabel = mySection?.label ?? "My Section";
 
   return (
     <>
-      <PageHeader title="Grades" subtitle={`${mySection.label} · Ms. Aurora Aquino · SY ${SCHOOL_YEAR}`} />
+      <PageHeader title="Grades" subtitle={`${sectionLabel} · SY ${SCHOOL_YEAR}`} />
       <main className="space-y-6 p-4 sm:p-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
             <div>
-              <CardTitle className="text-base">Grade Book — {mySection.label}</CardTitle>
-              <p className="text-xs text-muted-foreground">All quarters · {SCHOOL_NAME}</p>
+              <CardTitle className="text-base">Grade Book — {sectionLabel}</CardTitle>
+              <p className="text-xs text-muted-foreground">Q1–Q3 · {SCHOOL_NAME}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap justify-end">
               <Button variant="outline" size="sm" onClick={() => setComparisonOpen(true)}>
                 <TrendingUp className="h-4 w-4" /> Compare Quarters
               </Button>
-              <Button variant="outline" size="sm"><Upload className="h-4 w-4" /> Import CSV</Button>
-              {editMode
-                ? <Button size="sm" style={{ background: "var(--gradient-accent)" }} onClick={save}><Save className="h-4 w-4" /> Save</Button>
-                : <Button size="sm" variant="outline" onClick={() => { setEditMode(true); setSaved(false); }}>Edit Q3</Button>}
+              <Button variant="outline" size="sm">
+                <Upload className="h-4 w-4" /> Import CSV
+              </Button>
+              {editMode ? (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => setEditMode(false)} disabled={saving}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    style={{ background: "var(--gradient-accent)" }}
+                    onClick={handleSave}
+                    disabled={saving}
+                  >
+                    <Save className="h-4 w-4" />
+                    {saving ? "Saving…" : "Save"}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={enterEditMode}
+                  disabled={subjects.length === 0 || learners.length === 0}
+                >
+                  Edit Q{CURRENT_Q}
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="pb-3 text-left font-ui text-xs uppercase tracking-wide text-muted-foreground">Learner</th>
-                    {SUBJECTS.map((s) => (
-                      <th key={s} colSpan={3} className="pb-1 text-center font-ui text-xs uppercase tracking-wide text-muted-foreground border-l border-border/40">{s}</th>
-                    ))}
-                    <th className="pb-3 text-right font-ui text-xs uppercase tracking-wide text-muted-foreground">GPA</th>
-                  </tr>
-                  <tr className="border-b">
-                    <th className="pb-2" />
-                    {SUBJECTS.flatMap((s) => (
-                      ["Q1", "Q2", "Q3"].map((q) => (
-                        <th key={`${s}-${q}`} className="pb-2 text-center font-ui text-[10px] text-muted-foreground border-l border-border/20 first:border-l-0">
-                          {q}
+            {subjects.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No subjects found for this section.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="pb-3 text-left font-ui text-xs uppercase tracking-wide text-muted-foreground min-w-[140px]">
+                        Learner
+                      </th>
+                      {subjects.map((s) => (
+                        <th
+                          key={s.id}
+                          colSpan={3}
+                          className="pb-1 text-center font-ui text-xs uppercase tracking-wide text-muted-foreground border-l border-border/40 px-1"
+                        >
+                          {s.name}
                         </th>
-                      ))
-                    ))}
-                    <th />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {learners.map((l) => {
-                    const allQ3 = SUBJECTS.map((s) => q3Grades[l.lrn]?.[s] ?? 85);
-                    const gpa = allQ3.reduce((a, v) => a + v, 0) / allQ3.length;
-                    return (
-                      <tr key={l.lrn} className="hover:bg-muted/30">
-                        <td className="py-3 font-medium whitespace-nowrap pr-3">{fullName(l)}</td>
-                        {SUBJECTS.flatMap((s) => {
-                          const [q1, q2] = Q_GRADES[l.lrn]?.[s] ?? [85, 85, 85];
-                          const q3 = q3Grades[l.lrn]?.[s] ?? 85;
-                          return [
-                            <td key={`${s}-q1`} className="py-3 text-center text-muted-foreground border-l border-border/20 px-2">{q1}</td>,
-                            <td key={`${s}-q2`} className="py-3 text-center text-muted-foreground px-2">{q2}</td>,
-                            <td key={`${s}-q3`} className="py-3 text-center px-1">
-                              {editMode ? (
-                                <Input
-                                  type="number" min={0} max={100} value={q3}
-                                  onChange={(e) => setQ3Grades((p) => ({ ...p, [l.lrn]: { ...p[l.lrn], [s]: Number(e.target.value) } }))}
-                                  className="h-7 w-14 text-center text-xs"
-                                />
-                              ) : (
-                                <span className={`font-semibold ${q3 < 75 ? "text-destructive" : q3 >= 90 ? "text-chart-2" : ""}`}>{q3}</span>
-                              )}
-                            </td>,
-                          ];
-                        })}
-                        <td className={`py-3 text-right font-bold pl-3 ${gpa < 75 ? "text-destructive" : gpa >= 90 ? "text-chart-2" : ""}`}>
-                          {gpa.toFixed(1)}
+                      ))}
+                      <th className="pb-3 text-right font-ui text-xs uppercase tracking-wide text-muted-foreground pl-2">
+                        GPA
+                      </th>
+                    </tr>
+                    <tr className="border-b">
+                      <th className="pb-2" />
+                      {subjects.flatMap((s) =>
+                        ["Q1", "Q2", "Q3"].map((q) => (
+                          <th
+                            key={`${s.id}-${q}`}
+                            className="pb-2 text-center font-ui text-[10px] text-muted-foreground border-l border-border/20"
+                          >
+                            {q}
+                          </th>
+                        ))
+                      )}
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {learners.map((l) => {
+                      const q3Vals = subjects
+                        .map((s) => {
+                          const key = `${l.id}-${s.id}`;
+                          if (editMode && edits[key] !== undefined) return Number(edits[key]);
+                          const g = getGrade(l.id, s.id, CURRENT_Q);
+                          return g?.computed_grade != null ? Number(g.computed_grade) : null;
+                        })
+                        .filter((v): v is number => v !== null);
+                      const gpa = q3Vals.length ? q3Vals.reduce((a, v) => a + v, 0) / q3Vals.length : 0;
+
+                      return (
+                        <tr key={l.id} className="hover:bg-muted/30">
+                          <td className="py-3 font-medium whitespace-nowrap pr-3">{l.full_name}</td>
+                          {subjects.flatMap((s) => {
+                            const key = `${l.id}-${s.id}`;
+                            const q1Val = getGrade(l.id, s.id, 1)?.computed_grade;
+                            const q2Val = getGrade(l.id, s.id, 2)?.computed_grade;
+                            const rawQ3 = getGrade(l.id, s.id, CURRENT_Q)?.computed_grade;
+                            const q3Display =
+                              editMode && edits[key] !== undefined
+                                ? Number(edits[key])
+                                : rawQ3 != null
+                                ? Number(rawQ3)
+                                : null;
+                            return [
+                              <td key={`${s.id}-q1`} className="py-3 text-center text-muted-foreground border-l border-border/20 px-2">
+                                {q1Val != null ? Number(q1Val) : "—"}
+                              </td>,
+                              <td key={`${s.id}-q2`} className="py-3 text-center text-muted-foreground px-2">
+                                {q2Val != null ? Number(q2Val) : "—"}
+                              </td>,
+                              <td key={`${s.id}-q3`} className="py-3 text-center px-1">
+                                {editMode ? (
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={edits[key] ?? ""}
+                                    onChange={(e) =>
+                                      setEdits((p) => ({ ...p, [key]: e.target.value }))
+                                    }
+                                    onBlur={(e) => {
+                                      const v = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                                      setEdits((p) => ({ ...p, [key]: String(v) }));
+                                    }}
+                                    className="h-7 w-14 text-center text-xs"
+                                  />
+                                ) : (
+                                  <span
+                                    className={`font-semibold ${
+                                      q3Display != null && q3Display < 75
+                                        ? "text-destructive"
+                                        : q3Display != null && q3Display >= 90
+                                        ? "text-chart-2"
+                                        : ""
+                                    }`}
+                                  >
+                                    {q3Display != null ? q3Display : "—"}
+                                  </span>
+                                )}
+                              </td>,
+                            ];
+                          })}
+                          <td
+                            className={`py-3 text-right font-bold pl-3 ${
+                              gpa > 0 && gpa < 75 ? "text-destructive" : gpa >= 90 ? "text-chart-2" : ""
+                            }`}
+                          >
+                            {gpa > 0 ? gpa.toFixed(1) : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {learners.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={subjects.length * 3 + 2}
+                          className="py-8 text-center text-sm text-muted-foreground"
+                        >
+                          No learners found in this section.
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {saved && (
-              <p className="mt-3 flex items-center gap-2 text-sm text-chart-2">
-                <CheckCircle2 className="h-4 w-4" /> Grades saved successfully.
-              </p>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -532,9 +717,13 @@ function TeacherGradeBook() {
                   <LineChart data={quarterComparison}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                     <XAxis dataKey="subject" stroke="var(--color-muted-foreground)" fontSize={11} />
-                    <YAxis domain={[70, 100]} stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <YAxis domain={[60, 100]} stroke="var(--color-muted-foreground)" fontSize={11} />
                     <Tooltip
-                      contentStyle={{ background: "var(--color-background)", border: "1px solid var(--color-border)", borderRadius: 8 }}
+                      contentStyle={{
+                        background: "var(--color-background)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 8,
+                      }}
                     />
                     <Line type="monotone" dataKey="Q1" stroke="var(--color-chart-3)" strokeWidth={2} dot={{ r: 4 }} />
                     <Line type="monotone" dataKey="Q2" stroke="var(--color-chart-1)" strokeWidth={2} dot={{ r: 4 }} />
@@ -543,12 +732,15 @@ function TeacherGradeBook() {
                 </ResponsiveContainer>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-4">
-                {["Q1", "Q2", "Q3"].map((q, i) => {
-                  const avg = quarterComparison.reduce((sum, s) => sum + (s[q as keyof typeof s] as number), 0) / quarterComparison.length;
+                {["Q1", "Q2", "Q3"].map((q) => {
+                  const avg = quarterComparison.length
+                    ? quarterComparison.reduce((sum, s) => sum + (s[q as keyof typeof s] as number), 0) /
+                      quarterComparison.length
+                    : 0;
                   return (
                     <div key={q} className="text-center p-3 rounded-lg border">
                       <p className="text-xs text-muted-foreground mb-1">{q} Average</p>
-                      <p className="text-2xl font-bold">{avg.toFixed(1)}</p>
+                      <p className="text-2xl font-bold">{avg > 0 ? avg.toFixed(1) : "—"}</p>
                     </div>
                   );
                 })}

@@ -133,6 +133,24 @@ export function useGrades(params?: { learner?: number; subject?: number; quarter
   })
 }
 
+export function useSubjects(sectionId?: number) {
+  return useQuery({
+    queryKey: ['subjects', sectionId],
+    queryFn: () => api.subjects.list({ section: sectionId }),
+    staleTime: 60_000,
+    enabled: sectionId != null,
+  })
+}
+
+export function useGradesBySection(sectionId: number | null) {
+  return useQuery({
+    queryKey: ['grades', 'section', sectionId],
+    queryFn: () => api.grades.list({ section: sectionId! }),
+    staleTime: 30_000,
+    enabled: sectionId != null,
+  })
+}
+
 export function useUpsertGrade() {
   const qc = useQueryClient()
   return useMutation({
