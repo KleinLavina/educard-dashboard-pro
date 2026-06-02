@@ -1,2 +1,4 @@
 - [API-mock bridge pattern](api-mock-bridge.md) — unified display model pattern used across grades/attendance/id-cards when wiring API hooks alongside mock fallback
 - [Section ID type mismatch](section-id-types.md) — mock sections use string IDs, API sections use numeric IDs; must cast when joining learners to sections
+- [JWT auth guard expiry check](jwt-expiry-guard.md) — presence check alone is not enough; must decode payload and compare exp * 1000 > Date.now()
+- [Parent view API field mapping](parent-api-fields.md) — Learner API uses snake_case flat fields (first_name, full_name, gpa, attendance_rate, section_label); Grade API is per-quarter-per-subject and must be grouped by subject_name before display

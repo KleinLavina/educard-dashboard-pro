@@ -19,7 +19,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { setRole } = useRole();
+  const { setRole, setUserId } = useRole();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -37,8 +37,9 @@ function LoginPage() {
       if (res.access) {
         token.set(res.access);
         if (res.refresh) token.setRefresh(res.refresh);
-        const role = (res.user?.role === "admin" ? "admin" : res.user?.role ?? "admin") as Role;
+        const role = (res.user?.role ?? "admin") as Role;
         setRole(role);
+        setUserId(res.user?.id ?? null);
         toast.success(`Welcome, ${res.user?.full_name || res.user?.username || username}!`);
         navigate({ to: "/dashboard" });
       }
@@ -49,11 +50,6 @@ function LoginPage() {
     } finally {
       setIsLoading(false);
     }
-  }
-
-  function enterDemo(role: Role) {
-    setRole(role);
-    navigate({ to: "/dashboard" });
   }
 
   return (
@@ -124,22 +120,9 @@ function LoginPage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-2">
-          <p className="text-center font-ui text-[11px] uppercase tracking-wider text-muted-foreground">
-            Demo — no login required
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {(["admin", "teacher", "parent", "student"] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => enterDemo(r)}
-                className="rounded-lg border bg-card px-3 py-2 text-xs font-medium capitalize transition-colors hover:bg-muted"
-              >
-                Enter as {r}
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="text-center text-xs text-muted-foreground">
+          Contact your school administrator if you need access.
+        </p>
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { SCHOOL_NAME, SCHOOL_YEAR, allSections, allLearners } from "@/lib/school-data";
 import { useRole } from "@/lib/role-context";
 import { Grade } from "@/lib/api";
-import { useSections, useLearners, useUpsertGrade, useSubjects, useGradesBySection } from "@/lib/use-api";
+import { useSections, useLearners, useUpsertGrade, useSubjects, useGradesBySection, useLearnerGrades, useGrades, useMyTeacherSection, useMyLearner } from "@/lib/use-api";
 
 export const Route = createFileRoute("/grades")({
   component: GradesPage,
@@ -33,44 +33,50 @@ function GradesPage() {
 }
 
 /* ─── Parent: children grades overview ────────────────────── */
-const PARENT_GRADES = {
-  juan: [
-    { subject: "Math",     q1: 89, q2: 91, q3: 92 },
-    { subject: "Science",  q1: 87, q2: 88, q3: 90 },
-    { subject: "English",  q1: 85, q2: 87, q3: 88 },
-    { subject: "Filipino", q1: 91, q2: 93, q3: 94 },
-    { subject: "AP",       q1: 88, q2: 90, q3: 91 },
-    { subject: "MAPEH",    q1: 93, q2: 94, q3: 95 },
-  ],
-  bea: [
-    { subject: "Math",     q1: 86, q2: 88, q3: 90 },
-    { subject: "Science",  q1: 89, q2: 91, q3: 90 },
-    { subject: "English",  q1: 85, q2: 86, q3: 88 },
-    { subject: "Filipino", q1: 88, q2: 90, q3: 91 },
-    { subject: "AP",       q1: 85, q2: 88, q3: 89 },
-    { subject: "MAPEH",    q1: 90, q2: 92, q3: 94 },
-  ],
-};
-
 function ParentGrades() {
-  const [activeChild, setActiveChild] = useState<"juan" | "bea">("juan");
-  const grades = PARENT_GRADES[activeChild];
-  const avg = grades.reduce((a, s) => a + (s.q1 + s.q2 + s.q3) / 3, 0) / grades.length;
+  const { data: childrenPage } = useLearners();
+  const children = childrenPage?.results ?? [];
+  const [activeChildIdx, setActiveChildIdx] = useState(0);
+  const activeChild = children[activeChildIdx] ?? null;
+
+  const { data: apiGrades = [] } = useLearnerGrades(activeChild?.id ?? null);
+
+  const gradesBySubject = apiGrades.reduce<Record<string, { q1: number | null; q2: number | null; q3: number | null }>>(
+    (acc, g) => {
+      if (!acc[g.subject_name]) acc[g.subject_name] = { q1: null, q2: null, q3: null };
+      if (g.quarter === 1) acc[g.subject_name].q1 = g.computed_grade;
+      if (g.quarter === 2) acc[g.subject_name].q2 = g.computed_grade;
+      if (g.quarter === 3) acc[g.subject_name].q3 = g.computed_grade;
+      return acc;
+    },
+    {}
+  );
+  const grades = Object.entries(gradesBySubject).map(([subject, g]) => ({
+    subject,
+    q1: g.q1,
+    q2: g.q2,
+    q3: g.q3,
+  }));
+
+  const currentQGrades = grades.map(s => s.q3 ?? s.q2 ?? s.q1 ?? 0);
+  const avg = currentQGrades.length > 0
+    ? currentQGrades.reduce((a, v) => a + v, 0) / currentQGrades.length
+    : 0;
 
   return (
     <>
-      <PageHeader title="Children's Grades" subtitle={`Family Portal · Grade 7 Sampaguita · SY ${SCHOOL_YEAR}`} />
+      <PageHeader title="Children's Grades" subtitle={`Family Portal · SY ${SCHOOL_YEAR}`} />
       <main className="space-y-6 p-4 sm:p-6">
         {/* Child selector */}
-        <div className="flex gap-2">
-          {(["juan", "bea"] as const).map((c) => (
+        <div className="flex flex-wrap gap-2">
+          {children.map((c, idx) => (
             <button
-              key={c}
-              onClick={() => setActiveChild(c)}
-              className={`rounded-xl px-5 py-2 text-sm font-semibold transition-colors ${activeChild === c ? "text-primary-foreground shadow-sm" : "border bg-card text-muted-foreground hover:bg-muted"}`}
-              style={activeChild === c ? { background: "linear-gradient(135deg, oklch(0.60 0.15 150), oklch(0.75 0.12 170))" } : {}}
+              key={c.lrn}
+              onClick={() => setActiveChildIdx(idx)}
+              className={`rounded-xl px-5 py-2 text-sm font-semibold transition-colors ${activeChildIdx === idx ? "text-primary-foreground shadow-sm" : "border bg-card text-muted-foreground hover:bg-muted"}`}
+              style={activeChildIdx === idx ? { background: "linear-gradient(135deg, oklch(0.60 0.15 150), oklch(0.75 0.12 170))" } : {}}
             >
-              {c === "juan" ? "Juan M. Dela Cruz" : "Bea L. Soriano"}
+              {c.full_name}
             </button>
           ))}
         </div>
@@ -78,9 +84,9 @@ function ParentGrades() {
         {/* Summary */}
         <section className="grid grid-cols-3 gap-4">
           {[
-            { label: "General Avg (Q3)", value: avg.toFixed(1), accent: "text-chart-1" },
-            { label: "With Honors",      value: avg >= 90 ? "Yes" : "No", accent: avg >= 90 ? "text-chart-2" : "text-muted-foreground" },
-            { label: "Subjects",         value: grades.length, accent: "text-chart-3" },
+            { label: "General Avg", value: avg > 0 ? avg.toFixed(1) : "—", accent: "text-chart-1" },
+            { label: "With Honors", value: avg >= 90 ? "Yes" : avg > 0 ? "No" : "—", accent: avg >= 90 ? "text-chart-2" : "text-muted-foreground" },
+            { label: "Subjects",    value: grades.length || "—", accent: "text-chart-3" },
           ].map((m) => (
             <Card key={m.label} className="border-border/60">
               <CardContent className="p-5">
@@ -95,41 +101,50 @@ function ParentGrades() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {activeChild === "juan" ? "Juan M. Dela Cruz" : "Bea L. Soriano"} — Academic Transcript
+              {activeChild?.full_name ?? "—"} — Academic Transcript
             </CardTitle>
-            <p className="text-xs text-muted-foreground">Grade 7 - Sampaguita · {SCHOOL_NAME}</p>
+            <p className="text-xs text-muted-foreground">{activeChild?.section_label ?? "—"} · {SCHOOL_NAME}</p>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    {["Subject", "Q1", "Q2", "Q3 (Current)", "Avg", "Remarks"].map((h) => (
-                      <th key={h} className={`pb-3 font-ui text-xs uppercase tracking-wide text-muted-foreground ${h === "Subject" ? "text-left" : "text-center"}`}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {grades.map((s) => {
-                    const cellAvg = Math.round((s.q1 + s.q2 + s.q3) / 3);
-                    return (
-                      <tr key={s.subject} className="hover:bg-muted/30">
-                        <td className="py-3 font-semibold">{s.subject}</td>
-                        <td className="py-3 text-center text-muted-foreground">{s.q1}</td>
-                        <td className="py-3 text-center text-muted-foreground">{s.q2}</td>
-                        <td className="py-3 text-center font-bold">{s.q3}</td>
-                        <td className={`py-3 text-center font-semibold ${cellAvg >= 90 ? "text-chart-2" : cellAvg < 75 ? "text-destructive" : ""}`}>{cellAvg}</td>
-                        <td className="py-3 text-center">
-                          <Badge variant={cellAvg >= 90 ? "default" : cellAvg < 75 ? "destructive" : "secondary"}>
-                            {cellAvg >= 90 ? "With Honors" : cellAvg < 75 ? "Failed" : "Passed"}
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            {grades.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                {activeChild ? "No grade records found for this child." : "Select a child to view grades."}
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      {["Subject", "Q1", "Q2", "Q3 (Current)", "Avg", "Remarks"].map((h) => (
+                        <th key={h} className={`pb-3 font-ui text-xs uppercase tracking-wide text-muted-foreground ${h === "Subject" ? "text-left" : "text-center"}`}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {grades.map((s) => {
+                      const vals = [s.q1, s.q2, s.q3].filter((v): v is number => v !== null);
+                      const cellAvg = vals.length > 0 ? Math.round(vals.reduce((a, v) => a + v, 0) / vals.length) : 0;
+                      return (
+                        <tr key={s.subject} className="hover:bg-muted/30">
+                          <td className="py-3 font-semibold">{s.subject}</td>
+                          <td className="py-3 text-center text-muted-foreground">{s.q1 ?? "—"}</td>
+                          <td className="py-3 text-center text-muted-foreground">{s.q2 ?? "—"}</td>
+                          <td className="py-3 text-center font-bold">{s.q3 ?? "—"}</td>
+                          <td className={`py-3 text-center font-semibold ${cellAvg >= 90 ? "text-chart-2" : cellAvg > 0 && cellAvg < 75 ? "text-destructive" : ""}`}>{cellAvg || "—"}</td>
+                          <td className="py-3 text-center">
+                            {cellAvg > 0 && (
+                              <Badge variant={cellAvg >= 90 ? "default" : cellAvg < 75 ? "destructive" : "secondary"}>
+                                {cellAvg >= 90 ? "With Honors" : cellAvg < 75 ? "Failed" : "Passed"}
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>
@@ -374,7 +389,7 @@ function PrincipalGradeOverview() {
                     <p className="text-xs font-medium">{d.range}</p>
                     <p className="text-lg font-bold">{d.count}</p>
                     <p className="text-xs text-muted-foreground">
-                      {((d.count / allLearners.length) * 100).toFixed(1)}%
+                      {learnerList.length > 0 ? ((d.count / learnerList.length) * 100).toFixed(1) : "0.0"}%
                     </p>
                   </div>
                 ))}
@@ -759,46 +774,62 @@ function TeacherGradeBook() {
 }
 
 /* ─── Student: full transcript ────────────────────────────── */
-const STUDENT_TRANSCRIPT = [
-  { subject: "Math",     q1: 89, q2: 91, q3: 92, q4: null },
-  { subject: "Science",  q1: 87, q2: 88, q3: 90, q4: null },
-  { subject: "English",  q1: 85, q2: 87, q3: 88, q4: null },
-  { subject: "Filipino", q1: 91, q2: 93, q3: 94, q4: null },
-  { subject: "AP",       q1: 88, q2: 90, q3: 91, q4: null },
-  { subject: "MAPEH",    q1: 93, q2: 94, q3: 95, q4: null },
-];
-
 function StudentTranscript() {
-  const avg = STUDENT_TRANSCRIPT.reduce((a, s) => a + (s.q1 + s.q2 + s.q3) / 3, 0) / STUDENT_TRANSCRIPT.length;
+  const { data: myLearner } = useMyLearner();
+  const { data: apiGrades = [] } = useLearnerGrades(myLearner?.id ?? null);
+
+  const gradesBySubject = apiGrades.reduce<Record<string, { q1: number | null; q2: number | null; q3: number | null; q4: number | null }>>(
+    (acc, g) => {
+      if (!acc[g.subject_name]) acc[g.subject_name] = { q1: null, q2: null, q3: null, q4: null };
+      if (g.quarter === 1) acc[g.subject_name].q1 = g.computed_grade;
+      if (g.quarter === 2) acc[g.subject_name].q2 = g.computed_grade;
+      if (g.quarter === 3) acc[g.subject_name].q3 = g.computed_grade;
+      if (g.quarter === 4) acc[g.subject_name].q4 = g.computed_grade;
+      return acc;
+    },
+    {}
+  );
+  const transcript = Object.entries(gradesBySubject).map(([subject, g]) => ({ subject, ...g }));
+
+  const avgVals = transcript.map(s => {
+    const vals = [s.q1, s.q2, s.q3, s.q4].filter((v): v is number => v !== null);
+    return vals.length > 0 ? vals.reduce((a, v) => a + v, 0) / vals.length : 0;
+  }).filter(v => v > 0);
+  const avg = avgVals.length > 0 ? avgVals.reduce((a, v) => a + v, 0) / avgVals.length : 0;
+
   const [reportCardOpen, setReportCardOpen] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
 
   const handleDownloadReportCard = () => {
     toast.success("Report card downloaded", {
-      description: "ReportCard_Q3_JuanDelaCruz.pdf",
+      description: `ReportCard_Q3_${myLearner?.full_name?.replace(/\s+/g, '') ?? 'Student'}.pdf`,
     });
     setReportCardOpen(false);
   };
 
-  // Subject performance analysis
-  const subjectAnalysis = STUDENT_TRANSCRIPT.map(s => ({
-    subject: s.subject,
-    current: s.q3,
-    average: Math.round((s.q1 + s.q2 + s.q3) / 3),
-    trend: s.q3 - s.q2,
-    status: s.q3 >= 90 ? "Excellent" : s.q3 >= 85 ? "Very Good" : s.q3 >= 80 ? "Good" : s.q3 >= 75 ? "Fair" : "Needs Improvement"
-  }));
+  const subjectAnalysis = transcript.map(s => {
+    const vals = [s.q1, s.q2, s.q3].filter((v): v is number => v !== null);
+    const current = s.q3 ?? s.q2 ?? s.q1 ?? 0;
+    const cellAvg = vals.length > 0 ? Math.round(vals.reduce((a, v) => a + v, 0) / vals.length) : 0;
+    const trend = s.q3 !== null && s.q2 !== null ? s.q3 - s.q2 : 0;
+    return {
+      subject: s.subject,
+      current,
+      average: cellAvg,
+      trend,
+      status: current >= 90 ? "Excellent" : current >= 85 ? "Very Good" : current >= 80 ? "Good" : current >= 75 ? "Fair" : "Needs Improvement",
+    };
+  });
 
   return (
     <>
-      <PageHeader title="My Grades" subtitle={`Juan M. Dela Cruz · Grade 7 - Sampaguita · SY ${SCHOOL_YEAR}`} />
+      <PageHeader title="My Grades" subtitle={`${myLearner?.full_name ?? "—"} · ${myLearner?.section_label ?? "—"} · SY ${SCHOOL_YEAR}`} />
       <main className="space-y-6 p-4 sm:p-6">
-        <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <section className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {[
-            { label: "General Avg (Q3)", value: avg.toFixed(1), accent: "text-chart-1" },
-            { label: "With Honors", value: avg >= 90 ? "Yes" : "No", accent: avg >= 90 ? "text-chart-2" : "text-muted-foreground" },
-            { label: "Class Rank", value: "#1", accent: "text-chart-2" },
-            { label: "Subjects", value: STUDENT_TRANSCRIPT.length, accent: "text-chart-3" },
+            { label: "General Average", value: avg > 0 ? avg.toFixed(1) : "—", accent: "text-chart-1" },
+            { label: "With Honors", value: avg >= 90 ? "Yes" : avg > 0 ? "No" : "—", accent: avg >= 90 ? "text-chart-2" : "text-muted-foreground" },
+            { label: "Subjects", value: transcript.length || "—", accent: "text-chart-3" },
           ].map((m) => (
             <Card key={m.label} className="border-border/60">
               <CardContent className="p-5">
@@ -815,89 +846,91 @@ function StudentTranscript() {
               <CardTitle className="flex items-center gap-2 text-base">
                 <GraduationCap className="h-4 w-4" /> Academic Transcript — SY {SCHOOL_YEAR}
               </CardTitle>
-              <p className="text-xs text-muted-foreground">Grade 7 - Sampaguita · {SCHOOL_NAME}</p>
+              <p className="text-xs text-muted-foreground">{myLearner?.section_label ?? "—"} · {SCHOOL_NAME}</p>
             </div>
             <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setAnalysisOpen(true)}
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Analysis
+              <Button size="sm" variant="outline" onClick={() => setAnalysisOpen(true)}>
+                <BarChart3 className="mr-2 h-4 w-4" /> Analysis
               </Button>
-              <Button
-                size="sm"
-                onClick={() => setReportCardOpen(true)}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Report Card
+              <Button size="sm" onClick={() => setReportCardOpen(true)}>
+                <Download className="mr-2 h-4 w-4" /> Report Card
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    {["Subject", "Q1", "Q2", "Q3 (Current)", "Q4", "Average", "Remarks"].map((h) => (
-                      <th key={h} className={`pb-3 font-ui text-xs uppercase tracking-wide text-muted-foreground ${h === "Subject" ? "text-left" : "text-center"}`}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {STUDENT_TRANSCRIPT.map((s) => {
-                    const cellAvg = Math.round((s.q1 + s.q2 + s.q3) / 3);
-                    const passed = cellAvg >= 75;
-                    return (
-                      <tr key={s.subject} className="hover:bg-muted/30">
-                        <td className="py-3 font-semibold">{s.subject}</td>
-                        <td className="py-3 text-center text-muted-foreground">{s.q1}</td>
-                        <td className="py-3 text-center text-muted-foreground">{s.q2}</td>
-                        <td className="py-3 text-center font-bold text-foreground">{s.q3}</td>
-                        <td className="py-3 text-center text-muted-foreground">—</td>
-                        <td className={`py-3 text-center font-semibold ${cellAvg >= 90 ? "text-chart-2" : !passed ? "text-destructive" : ""}`}>
-                          {cellAvg}
-                        </td>
-                        <td className="py-3 text-center">
-                          <Badge variant={!passed ? "destructive" : cellAvg >= 90 ? "default" : "secondary"}>
-                            {!passed ? "Failed" : cellAvg >= 90 ? "With Honors" : "Passed"}
-                          </Badge>
+            {transcript.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No grade records found.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      {["Subject", "Q1", "Q2", "Q3 (Current)", "Q4", "Average", "Remarks"].map((h) => (
+                        <th key={h} className={`pb-3 font-ui text-xs uppercase tracking-wide text-muted-foreground ${h === "Subject" ? "text-left" : "text-center"}`}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {transcript.map((s) => {
+                      const vals = [s.q1, s.q2, s.q3, s.q4].filter((v): v is number => v !== null);
+                      const cellAvg = vals.length > 0 ? Math.round(vals.reduce((a, v) => a + v, 0) / vals.length) : 0;
+                      const passed = cellAvg >= 75;
+                      return (
+                        <tr key={s.subject} className="hover:bg-muted/30">
+                          <td className="py-3 font-semibold">{s.subject}</td>
+                          <td className="py-3 text-center text-muted-foreground">{s.q1 ?? "—"}</td>
+                          <td className="py-3 text-center text-muted-foreground">{s.q2 ?? "—"}</td>
+                          <td className="py-3 text-center font-bold text-foreground">{s.q3 ?? "—"}</td>
+                          <td className="py-3 text-center text-muted-foreground">{s.q4 ?? "—"}</td>
+                          <td className={`py-3 text-center font-semibold ${cellAvg >= 90 ? "text-chart-2" : !passed && cellAvg > 0 ? "text-destructive" : ""}`}>
+                            {cellAvg || "—"}
+                          </td>
+                          <td className="py-3 text-center">
+                            {cellAvg > 0 && (
+                              <Badge variant={!passed ? "destructive" : cellAvg >= 90 ? "default" : "secondary"}>
+                                {!passed ? "Failed" : cellAvg >= 90 ? "With Honors" : "Passed"}
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  {avg > 0 && (
+                    <tfoot>
+                      <tr className="border-t-2">
+                        <td className="pt-3 font-ui text-xs uppercase tracking-wide text-muted-foreground" colSpan={5}>General Average</td>
+                        <td className="pt-3 text-center text-lg font-bold text-chart-2">{avg.toFixed(1)}</td>
+                        <td className="pt-3 text-center">
+                          <Badge>{avg >= 90 ? "With Honors" : "Passed"}</Badge>
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2">
-                    <td className="pt-3 font-ui text-xs uppercase tracking-wide text-muted-foreground" colSpan={5}>General Average</td>
-                    <td className="pt-3 text-center text-lg font-bold text-chart-2">{avg.toFixed(1)}</td>
-                    <td className="pt-3 text-center">
-                      <Badge>{avg >= 90 ? "With Honors" : "Passed"}</Badge>
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4" /> Quarter Trend</CardTitle></CardHeader>
-          <CardContent className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={STUDENT_TRANSCRIPT.map((s) => ({ subject: s.subject, Q1: s.q1, Q2: s.q2, Q3: s.q3 }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis dataKey="subject" stroke="var(--color-muted-foreground)" fontSize={11} />
-                <YAxis domain={[70, 100]} stroke="var(--color-muted-foreground)" fontSize={11} />
-                <Tooltip contentStyle={{ background: "var(--color-background)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="Q1" fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} opacity={0.5} />
-                <Bar dataKey="Q2" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} opacity={0.7} />
-                <Bar dataKey="Q3" fill="var(--color-chart-2)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {transcript.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4" /> Quarter Trend</CardTitle></CardHeader>
+            <CardContent className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={transcript.map((s) => ({ subject: s.subject, Q1: s.q1 ?? 0, Q2: s.q2 ?? 0, Q3: s.q3 ?? 0 }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis dataKey="subject" stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <YAxis domain={[70, 100]} stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <Tooltip contentStyle={{ background: "var(--color-background)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="Q1" fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} opacity={0.5} />
+                  <Bar dataKey="Q2" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} opacity={0.7} />
+                  <Bar dataKey="Q3" fill="var(--color-chart-2)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Report Card Dialog */}
         <Dialog open={reportCardOpen} onOpenChange={setReportCardOpen}>
@@ -915,19 +948,19 @@ function StudentTranscript() {
                 <div className="space-y-2 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Student Name:</span>
-                    <span className="font-semibold">Juan M. Dela Cruz</span>
+                    <span className="font-semibold">{myLearner?.full_name ?? "—"}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">LRN:</span>
-                    <span className="font-mono font-semibold">136728140987</span>
+                    <span className="font-mono font-semibold">{myLearner?.lrn ?? "—"}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Grade & Section:</span>
-                    <span className="font-semibold">Grade 7 - Sampaguita</span>
+                    <span className="font-semibold">{myLearner?.section_label ?? "—"}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">General Average:</span>
-                    <span className="text-lg font-bold text-chart-2">{avg.toFixed(1)}</span>
+                    <span className="text-lg font-bold text-chart-2">{avg > 0 ? avg.toFixed(1) : "—"}</span>
                   </div>
                 </div>
                 <div className="text-center text-xs text-muted-foreground">
@@ -936,12 +969,9 @@ function StudentTranscript() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setReportCardOpen(false)}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={() => setReportCardOpen(false)}>Cancel</Button>
               <Button onClick={handleDownloadReportCard}>
-                <Download className="mr-2 h-4 w-4" />
-                Download PDF
+                <Download className="mr-2 h-4 w-4" /> Download PDF
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -960,23 +990,18 @@ function StudentTranscript() {
                   <div key={s.subject} className="rounded-lg border p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-semibold">{s.subject}</h4>
-                      <Badge variant={
-                        s.status === "Excellent" ? "default" :
-                        s.status === "Very Good" ? "secondary" :
-                        s.status === "Needs Improvement" ? "destructive" :
-                        "outline"
-                      }>
+                      <Badge variant={s.status === "Excellent" ? "default" : s.status === "Very Good" ? "secondary" : s.status === "Needs Improvement" ? "destructive" : "outline"}>
                         {s.status}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground text-xs">Current (Q3)</p>
-                        <p className="text-lg font-bold">{s.current}</p>
+                        <p className="text-lg font-bold">{s.current || "—"}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Average</p>
-                        <p className="text-lg font-bold">{s.average}</p>
+                        <p className="text-lg font-bold">{s.average || "—"}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Trend</p>
@@ -990,9 +1015,7 @@ function StudentTranscript() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setAnalysisOpen(false)}>
-                Close
-              </Button>
+              <Button variant="outline" onClick={() => setAnalysisOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

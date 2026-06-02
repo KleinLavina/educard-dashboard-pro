@@ -93,26 +93,49 @@ class MeView(generics.RetrieveUpdateAPIView):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class DashboardStatsView(APIView):
-    """GET /api/dashboard/stats/  — campus-wide numbers for the hero section."""
+    """GET /api/dashboard/stats/  — role-scoped numbers for the hero section."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         settings = SchoolSettings.objects.first()
-        total = Learner.objects.filter(graduation_status='active').count()
-        avg_att = Learner.objects.filter(
-            graduation_status='active'
-        ).aggregate(a=Avg('attendance_rate'))['a'] or Decimal('0')
+        user = request.user
 
-        sections_below = Section.objects.annotate(
+        if user.role in ('admin', 'principal'):
+            learner_qs = Learner.objects.filter(graduation_status='active')
+            section_qs = Section.objects.all()
+        elif user.role == 'teacher':
+            assigned_ids = list(TeacherSectionAssignment.objects.filter(
+                teacher=user, is_active=True
+            ).values_list('section_id', flat=True))
+            adviser_ids = list(Section.objects.filter(adviser=user).values_list('id', flat=True))
+            scoped_ids = list(set(assigned_ids + adviser_ids))
+            learner_qs = Learner.objects.filter(graduation_status='active', section_id__in=scoped_ids)
+            section_qs = Section.objects.filter(id__in=scoped_ids)
+        elif user.role == 'parent':
+            child_ids = list(LearnerParent.objects.filter(parent=user).values_list('learner_id', flat=True))
+            learner_qs = Learner.objects.filter(id__in=child_ids, graduation_status='active')
+            section_qs = Section.objects.none()
+        elif user.role == 'student':
+            learner_qs = Learner.objects.filter(user_account=user, graduation_status='active')
+            section_qs = Section.objects.none()
+        else:
+            learner_qs = Learner.objects.filter(graduation_status='active')
+            section_qs = Section.objects.all()
+
+        total = learner_qs.count()
+        avg_att = learner_qs.aggregate(a=Avg('attendance_rate'))['a'] or Decimal('0')
+        at_risk = learner_qs.filter(Q(gpa__lt=75) | Q(attendance_rate__lt=95)).count()
+
+        sections_below = section_qs.annotate(
             avg=Avg('learners__attendance_rate')
         ).filter(avg__lt=95).count()
 
-        at_risk = Learner.objects.filter(
-            graduation_status='active'
-        ).filter(Q(gpa__lt=75) | Q(attendance_rate__lt=95)).count()
-
-        printed = IDPrintQueue.objects.filter(status='printed').count()
-        pending_tasks = AdminTask.objects.filter(status='pending').count()
+        if user.role in ('admin', 'principal'):
+            printed = IDPrintQueue.objects.filter(status='printed').count()
+            pending_tasks = AdminTask.objects.filter(status='pending').count()
+        else:
+            printed = 0
+            pending_tasks = 0
 
         data = {
             'total_enrolled': total,
@@ -223,15 +246,34 @@ class GradeLevelViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class SectionViewSet(viewsets.ModelViewSet):
-    queryset = Section.objects.select_related(
-        'grade_level__department', 'adviser'
-    ).annotate(
-        avg_att=Avg('learners__attendance_rate')
-    ).all()
     serializer_class = SectionSerializer
     permission_classes = [permissions.IsAuthenticated]
     search_fields = ['name', 'adviser__first_name', 'adviser__last_name']
     filterset_fields = ['grade_level', 'strand', 'grade_level__department']
+
+    def get_queryset(self):
+        qs = Section.objects.select_related(
+            'grade_level__department', 'adviser'
+        ).annotate(avg_att=Avg('learners__attendance_rate')).all()
+        user = self.request.user
+        if user.role == 'teacher':
+            assigned_ids = TeacherSectionAssignment.objects.filter(
+                teacher=user, is_active=True
+            ).values_list('section_id', flat=True)
+            qs = qs.filter(
+                Q(adviser=user) | Q(id__in=list(assigned_ids))
+            ).distinct()
+        elif user.role == 'student':
+            learner_section = Learner.objects.filter(
+                user_account=user
+            ).values_list('section_id', flat=True)
+            qs = qs.filter(id__in=list(learner_section))
+        elif user.role == 'parent':
+            learner_section_ids = Learner.objects.filter(
+                learner_parents__parent=user
+            ).values_list('section_id', flat=True)
+            qs = qs.filter(id__in=list(learner_section_ids))
+        return qs
 
     @action(detail=False, methods=['get'])
     def below_target(self, request):
@@ -323,10 +365,21 @@ class SubjectViewSet(viewsets.ModelViewSet):
 
 
 class GradeViewSet(viewsets.ModelViewSet):
-    queryset = Grade.objects.select_related('learner', 'subject').all()
     serializer_class = GradeSerializer
     permission_classes = [IsTeacherOrAdmin]
     filterset_fields = ['learner', 'subject', 'quarter', 'learner__section']
+
+    def get_queryset(self):
+        qs = Grade.objects.select_related('learner', 'subject').all()
+        user = self.request.user
+        if user.role == 'teacher':
+            assigned_ids = TeacherSectionAssignment.objects.filter(
+                teacher=user, is_active=True
+            ).values_list('section_id', flat=True)
+            qs = qs.filter(
+                Q(subject__teacher=user) | Q(learner__section_id__in=list(assigned_ids))
+            ).distinct()
+        return qs
 
     def perform_update(self, serializer):
         """Write audit log before saving."""
@@ -377,10 +430,28 @@ class SchoolCalendarViewSet(viewsets.ModelViewSet):
 
 
 class AttendanceRecordViewSet(viewsets.ModelViewSet):
-    queryset = AttendanceRecord.objects.select_related('learner__section').all()
     serializer_class = AttendanceRecordSerializer
     permission_classes = [permissions.IsAuthenticated]
     filterset_fields = ['learner', 'date', 'status']
+
+    def get_queryset(self):
+        qs = AttendanceRecord.objects.select_related('learner__section').all()
+        user = self.request.user
+        if user.role == 'teacher':
+            assigned_ids = TeacherSectionAssignment.objects.filter(
+                teacher=user, is_active=True
+            ).values_list('section_id', flat=True)
+            qs = qs.filter(
+                Q(learner__section__adviser=user) | Q(learner__section_id__in=list(assigned_ids))
+            ).distinct()
+        elif user.role == 'parent':
+            learner_ids = LearnerParent.objects.filter(
+                parent=user
+            ).values_list('learner_id', flat=True)
+            qs = qs.filter(learner_id__in=list(learner_ids))
+        elif user.role == 'student':
+            qs = qs.filter(learner__user_account=user)
+        return qs
 
     @action(detail=False, methods=['post'])
     def scan(self, request):

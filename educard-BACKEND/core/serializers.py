@@ -29,7 +29,14 @@ from .models import (
 # ============================================================================
 
 class EduCardTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """JWT login — adds role, full_name, and 2FA flag to the token response."""
+    """JWT login — adds role, user_id to the token payload and user info to the response."""
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['role'] = user.role
+        token['user_id'] = user.id
+        return token
 
     def validate(self, attrs):
         data = super().validate(attrs)

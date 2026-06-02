@@ -55,39 +55,41 @@ import { Separator } from "@/components/ui/separator";
 import {
   SCHOOL_NAME,
   SCHOOL_YEAR,
-  fullName,
-  allLearners,
-  gradeRecords,
-  SUBJECTS_JHS,
-  teacherContacts,
-  attendanceLogs,
-  conductLogs,
 } from "@/lib/school-data";
-
-// Mock data for parent's children
-const myChildren = [
-  allLearners.find((l) => l.learner.lrn === "136728140987")!, // Juan
-  allLearners.find((l) => l.learner.lrn === "136728140989")!, // Bea
-];
+import { useLearners, useLearnerGrades, useLearnerAttendance, useLearnerConduct, useTeacherContacts } from "@/lib/use-api";
 
 export function ParentMyChildrenView() {
   const [selectedChild, setSelectedChild] = useState(0);
+
+  // API: fetch authenticated parent's children (backend scopes to current user)
+  const { data: childrenPage } = useLearners();
+  const myChildren = childrenPage?.results ?? [];
   const activeChild = myChildren[selectedChild];
-  const childName = fullName(activeChild.learner);
+  const childName = activeChild?.full_name ?? '—';
 
-  // Get child-specific data
-  const childGrades = gradeRecords.filter((g) => g.lrn === activeChild.learner.lrn);
-  const childAttendance = attendanceLogs.filter((a) => a.lrn === activeChild.learner.lrn);
-  const childConduct = conductLogs.filter((c) => c.lrn === activeChild.learner.lrn);
+  // API: fetch grades, attendance, conduct, and teacher contacts
+  const { data: apiGrades = [] } = useLearnerGrades(activeChild?.id ?? null);
+  const childGradesBySubject = apiGrades.reduce<Record<string, { q1: number | null; q2: number | null; q3: number | null; q4: number | null }>>((acc, g) => {
+    if (!acc[g.subject_name]) acc[g.subject_name] = { q1: null, q2: null, q3: null, q4: null };
+    const key = `q${g.quarter}` as 'q1' | 'q2' | 'q3' | 'q4';
+    acc[g.subject_name][key] = g.computed_grade;
+    return acc;
+  }, {});
+  const childGrades = Object.entries(childGradesBySubject).map(([subject_name, grades]) => ({ subject_name, ...grades }));
 
-  // Calculate statistics
+  const { data: childAttendance = [] } = useLearnerAttendance(activeChild?.id ?? null);
+  const { data: childConduct = [] } = useLearnerConduct(activeChild?.id ?? null);
+  const { data: teacherContactsList = [] } = useTeacherContacts();
+
+  // Grade statistics
+  const q3Grades = childGrades.filter(g => g.q3 !== null).map(g => g.q3!);
   const gradeStats = {
-    highest: Math.max(...childGrades.map((g) => g.grades.q3)),
-    lowest: Math.min(...childGrades.map((g) => g.grades.q3)),
-    average: (childGrades.reduce((sum, g) => sum + g.grades.q3, 0) / childGrades.length).toFixed(1),
-    improving: childGrades.filter((g) => g.grades.q3 > g.grades.q2).length,
-    declining: childGrades.filter((g) => g.grades.q3 < g.grades.q2).length,
-    stable: childGrades.filter((g) => g.grades.q3 === g.grades.q2).length,
+    highest: q3Grades.length > 0 ? Math.max(...q3Grades) : 0,
+    lowest: q3Grades.length > 0 ? Math.min(...q3Grades) : 0,
+    average: q3Grades.length > 0 ? (q3Grades.reduce((sum, g) => sum + g, 0) / q3Grades.length).toFixed(1) : '—',
+    improving: childGrades.filter(g => g.q3 !== null && g.q2 !== null && g.q3! > g.q2!).length,
+    declining: childGrades.filter(g => g.q3 !== null && g.q2 !== null && g.q3! < g.q2!).length,
+    stable: childGrades.filter(g => g.q3 !== null && g.q2 !== null && g.q3 === g.q2).length,
   };
 
   // Attendance statistics
@@ -96,7 +98,7 @@ export function ParentMyChildrenView() {
     absent: childAttendance.filter((a) => a.status === "absent").length,
     late: childAttendance.filter((a) => a.status === "late").length,
     total: childAttendance.length,
-    rate: activeChild.learner.attendanceRate,
+    rate: activeChild?.attendance_rate ?? 0,
   };
 
   // Conduct statistics
@@ -107,25 +109,20 @@ export function ParentMyChildrenView() {
     total: childConduct.length,
   };
 
-  // Grade trend data
+  // Grade trend data for chart
   const gradeTrend = childGrades.map((g) => ({
-    subject: g.subject.length > 15 ? g.subject.substring(0, 15) + "..." : g.subject,
-    Q1: g.grades.q1,
-    Q2: g.grades.q2,
-    Q3: g.grades.q3,
+    subject: g.subject_name.length > 15 ? g.subject_name.substring(0, 15) + "..." : g.subject_name,
+    Q1: g.q1 ?? 0,
+    Q2: g.q2 ?? 0,
+    Q3: g.q3 ?? 0,
   }));
 
   // Subject performance radar data
   const radarData = childGrades.slice(0, 6).map((g) => ({
-    subject: g.subject.split(" ")[0], // First word only
-    score: g.grades.q3,
+    subject: g.subject_name.split(" ")[0],
+    score: g.q3 ?? 0,
     fullMark: 100,
   }));
-
-  // Get child's teachers
-  const childTeachers = teacherContacts.filter((t) =>
-    t.children?.includes(activeChild.learner.firstName)
-  );
 
   return (
     <>
@@ -147,7 +144,7 @@ export function ParentMyChildrenView() {
               <div className="flex gap-2">
                 {myChildren.map((child, idx) => (
                   <button
-                    key={child.learner.lrn}
+                    key={child.lrn}
                     onClick={() => setSelectedChild(idx)}
                     className={`rounded-lg px-6 py-3 text-sm font-medium transition-all ${
                       selectedChild === idx
@@ -155,7 +152,7 @@ export function ParentMyChildrenView() {
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
                     }`}
                   >
-                    {child.learner.firstName}
+                    {child.first_name}
                   </button>
                 ))}
               </div>
@@ -176,37 +173,37 @@ export function ParentMyChildrenView() {
             <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
               <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl border-4 border-background bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-xl">
                 <span className="text-5xl font-bold">
-                  {activeChild.learner.firstName.charAt(0)}
+                  {activeChild?.first_name?.charAt(0) ?? '?'}
                 </span>
               </div>
               <div className="flex-1 space-y-2">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h2 className="text-2xl font-bold">{childName}</h2>
-                    <p className="text-muted-foreground">{activeChild.sectionLabel}</p>
+                    <p className="text-muted-foreground">{activeChild?.section_label ?? '—'}</p>
                   </div>
                   <Badge
-                    variant={activeChild.status === "On Track" ? "secondary" : "destructive"}
+                    variant={activeChild?.status === "On Track" ? "secondary" : "destructive"}
                     className="text-sm"
                   >
-                    {activeChild.status}
+                    {activeChild?.status ?? '—'}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <div>
                     <p className="text-xs text-muted-foreground">LRN</p>
                     <p className="font-mono text-sm font-semibold">
-                      {activeChild.learner.lrn}
+                      {activeChild?.lrn ?? '—'}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">GPA</p>
-                    <p className="text-sm font-semibold">{activeChild.learner.gpa}</p>
+                    <p className="text-sm font-semibold">{activeChild?.gpa ?? '—'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Attendance</p>
                     <p className="text-sm font-semibold">
-                      {activeChild.learner.attendanceRate.toFixed(1)}%
+                      {(activeChild?.attendance_rate ?? 0).toFixed(1)}%
                     </p>
                   </div>
                   <div>
@@ -307,21 +304,21 @@ export function ParentMyChildrenView() {
                         <span>Improving Subjects</span>
                         <span className="font-semibold">{gradeStats.improving}</span>
                       </div>
-                      <Progress value={(gradeStats.improving / childGrades.length) * 100} className="h-2" />
+                      <Progress value={childGrades.length > 0 ? (gradeStats.improving / childGrades.length) * 100 : 0} className="h-2" />
                     </div>
                     <div>
                       <div className="mb-1 flex justify-between text-sm">
                         <span>Stable Subjects</span>
                         <span className="font-semibold">{gradeStats.stable}</span>
                       </div>
-                      <Progress value={(gradeStats.stable / childGrades.length) * 100} className="h-2" />
+                      <Progress value={childGrades.length > 0 ? (gradeStats.stable / childGrades.length) * 100 : 0} className="h-2" />
                     </div>
                     <div>
                       <div className="mb-1 flex justify-between text-sm">
                         <span>Declining Subjects</span>
                         <span className="font-semibold">{gradeStats.declining}</span>
                       </div>
-                      <Progress value={(gradeStats.declining / childGrades.length) * 100} className="h-2" />
+                      <Progress value={childGrades.length > 0 ? (gradeStats.declining / childGrades.length) * 100 : 0} className="h-2" />
                     </div>
                   </div>
                 </CardContent>
@@ -395,18 +392,18 @@ export function ParentMyChildrenView() {
                   <TableBody>
                     {childGrades.map((grade) => {
                       const trend =
-                        grade.grades.q3 > grade.grades.q2
+                        grade.q3 !== null && grade.q2 !== null && grade.q3 > grade.q2
                           ? "up"
-                          : grade.grades.q3 < grade.grades.q2
+                          : grade.q3 !== null && grade.q2 !== null && grade.q3 < grade.q2
                           ? "down"
                           : "stable";
                       return (
-                        <TableRow key={grade.subject}>
-                          <TableCell className="font-medium">{grade.subject}</TableCell>
-                          <TableCell className="text-center">{grade.grades.q1}</TableCell>
-                          <TableCell className="text-center">{grade.grades.q2}</TableCell>
+                        <TableRow key={grade.subject_name}>
+                          <TableCell className="font-medium">{grade.subject_name}</TableCell>
+                          <TableCell className="text-center">{grade.q1 ?? "—"}</TableCell>
+                          <TableCell className="text-center">{grade.q2 ?? "—"}</TableCell>
                           <TableCell className="text-center font-semibold">
-                            {grade.grades.q3}
+                            {grade.q3 ?? "—"}
                           </TableCell>
                           <TableCell className="text-center">
                             {trend === "up" && (
@@ -510,8 +507,8 @@ export function ParentMyChildrenView() {
                             {record.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>{record.timeIn || "—"}</TableCell>
-                        <TableCell>{record.timeOut || "—"}</TableCell>
+                        <TableCell>{record.time_in_morning || "—"}</TableCell>
+                        <TableCell>{record.time_out_afternoon || "—"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">—</TableCell>
                       </TableRow>
                     ))}
@@ -612,7 +609,7 @@ export function ParentMyChildrenView() {
                           </Badge>
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          {record.date} · {record.recordedBy}
+                          {record.date} · {record.recorded_by_name ?? '—'}
                         </p>
                       </div>
                     </div>
@@ -631,28 +628,28 @@ export function ParentMyChildrenView() {
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {childTeachers.map((teacher, idx) => (
-                    <Card key={idx}>
+                  {teacherContactsList.map((teacher) => (
+                    <Card key={teacher.id}>
                       <CardContent className="p-6">
                         <div className="space-y-4">
                           <div>
-                            <h4 className="font-semibold">{teacher.teacher}</h4>
-                            <p className="text-sm text-muted-foreground">{teacher.subject}</p>
+                            <h4 className="font-semibold">{teacher.teacher_name}</h4>
+                            <p className="text-sm text-muted-foreground">{teacher.teacher_email}</p>
                           </div>
                           <Separator />
                           <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Phone className="h-4 w-4 text-muted-foreground" />
-                              <span>{teacher.phone}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Mail className="h-4 w-4 text-muted-foreground" />
-                              <span className="truncate">{teacher.email}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Send className="h-4 w-4 text-muted-foreground" />
-                              <span>{teacher.messenger}</span>
-                            </div>
+                            {teacher.show_phone && teacher.phone && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <span>{teacher.phone}</span>
+                              </div>
+                            )}
+                            {teacher.show_email && teacher.email && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span className="truncate">{teacher.email}</span>
+                              </div>
+                            )}
                           </div>
                           <Button className="w-full" size="sm" asChild>
                             <Link to="/contacts">

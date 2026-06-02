@@ -57,19 +57,9 @@ import { toast } from "sonner";
 import {
   SCHOOL_NAME,
   SCHOOL_YEAR,
-  fullName,
-  allLearners,
-  gradeRecords,
-  SUBJECTS_JHS,
-  teacherContacts,
   SF2_TARGET,
 } from "@/lib/school-data";
-
-// Mock data for parent's children
-const myChildren = [
-  allLearners.find((l) => l.learner.lrn === "136728140987")!, // Juan
-  allLearners.find((l) => l.learner.lrn === "136728140989")!, // Bea
-];
+import { useLearners, useLearnerGrades, useTeacherContacts } from "@/lib/use-api";
 
 const attendanceHistory = [
   { week: "Wk 1", juan: 100, bea: 100 },
@@ -163,35 +153,49 @@ export function ParentView() {
   const [conductDetailOpen, setConductDetailOpen] = useState(false);
   const [selectedConduct, setSelectedConduct] = useState<typeof conductRecords[0] | null>(null);
 
-  const activeChildData = myChildren[activeChild];
-  const activeChildName = fullName(activeChildData.learner);
+  // API: fetch authenticated parent's children (backend scopes to current user)
+  const { data: childrenPage } = useLearners();
+  const myChildren = childrenPage?.results ?? [];
+  const activeChildData = myChildren[activeChild] ?? myChildren[0];
+  const activeChildName = activeChildData?.full_name ?? '—';
 
-  // Filter data by active child
+  // API: fetch grades for the active child
+  const { data: apiGrades = [] } = useLearnerGrades(activeChildData?.id ?? null);
+  const childGradesBySubject = apiGrades.reduce<Record<string, { q1: number | null; q2: number | null; q3: number | null; q4: number | null }>>((acc, g) => {
+    if (!acc[g.subject_name]) acc[g.subject_name] = { q1: null, q2: null, q3: null, q4: null };
+    const key = `q${g.quarter}` as 'q1' | 'q2' | 'q3' | 'q4';
+    acc[g.subject_name][key] = g.computed_grade;
+    return acc;
+  }, {});
+  const childGrades = Object.entries(childGradesBySubject).map(([subject_name, grades]) => ({ subject_name, ...grades }));
+
+  // API: fetch teacher contacts (backend scopes to parent's children's teachers)
+  const { data: teacherContactsList = [] } = useTeacherContacts();
+
+  // Filter notifications/conduct by active child's first name
   const childNotifications = recentNotifications.filter(
-    (n) => n.child === activeChildName || n.child === "Both"
+    (n) => n.child === activeChildData?.first_name || n.child === "Both"
   );
   const childConductRecords = conductRecords.filter(
-    (c) => c.child === activeChildName
-  );
-  const childGrades = gradeRecords.filter(
-    (g) => g.lrn === activeChildData.learner.lrn
+    (c) => c.child === activeChildData?.first_name
   );
 
-  // Calculate grade statistics
+  // Grade statistics from API data
+  const q3Grades = childGrades.filter(g => g.q3 !== null).map(g => g.q3!);
   const gradeStats = {
-    highest: Math.max(...childGrades.map(g => g.grades.q3)),
-    lowest: Math.min(...childGrades.map(g => g.grades.q3)),
-    average: childGrades.reduce((sum, g) => sum + g.grades.q3, 0) / childGrades.length,
-    improving: childGrades.filter(g => g.grades.q3 > g.grades.q2).length,
-    declining: childGrades.filter(g => g.grades.q3 < g.grades.q2).length,
+    highest: q3Grades.length > 0 ? Math.max(...q3Grades) : 0,
+    lowest: q3Grades.length > 0 ? Math.min(...q3Grades) : 0,
+    average: q3Grades.length > 0 ? q3Grades.reduce((sum, g) => sum + g, 0) / q3Grades.length : 0,
+    improving: childGrades.filter(g => g.q3 !== null && g.q2 !== null && g.q3! > g.q2!).length,
+    declining: childGrades.filter(g => g.q3 !== null && g.q2 !== null && g.q3! < g.q2!).length,
   };
 
   // Subject performance data for chart
   const subjectPerformance = childGrades.map(g => ({
-    subject: g.subject,
-    q1: g.grades.q1,
-    q2: g.grades.q2,
-    q3: g.grades.q3,
+    subject: g.subject_name,
+    q1: g.q1 ?? 0,
+    q2: g.q2 ?? 0,
+    q3: g.q3 ?? 0,
   }));
 
   const handleSimulateScan = (childName: string) => {
@@ -213,8 +217,7 @@ export function ParentView() {
       toast.error("Please select a teacher and enter a message");
       return;
     }
-    const teacher = teacherContacts.find(t => t.teacher === selectedTeacher);
-    toast.success(`Message sent to ${teacher?.teacher}`);
+    toast.success(`Message sent to ${selectedTeacher}`);
     setMessageTeacherOpen(false);
     setSelectedTeacher("");
     setMessage("");
@@ -281,7 +284,7 @@ export function ParentView() {
             <div className="flex gap-2">
               {myChildren.map((child, idx) => (
                 <button
-                  key={child.learner.lrn}
+                  key={child.lrn}
                   onClick={() => setActiveChild(idx)}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                     activeChild === idx
@@ -289,7 +292,7 @@ export function ParentView() {
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >
-                  {child.learner.firstName}
+                  {child.first_name}
                 </button>
               ))}
             </div>
@@ -319,7 +322,7 @@ export function ParentView() {
                   <div>
                     <p className="text-xs text-muted-foreground">Average GPA</p>
                     <p className="text-xl font-bold">
-                      {(myChildren.reduce((sum, c) => sum + c.learner.gpa, 0) / myChildren.length).toFixed(2)}
+                      {myChildren.length > 0 ? (myChildren.reduce((sum, c) => sum + (c.gpa ?? 0), 0) / myChildren.length).toFixed(2) : '—'}
                     </p>
                   </div>
                 </div>
@@ -334,7 +337,7 @@ export function ParentView() {
                   <div>
                     <p className="text-xs text-muted-foreground">Avg Attendance</p>
                     <p className="text-xl font-bold">
-                      {(myChildren.reduce((sum, c) => sum + c.learner.attendanceRate, 0) / myChildren.length).toFixed(1)}%
+                      {myChildren.length > 0 ? (myChildren.reduce((sum, c) => sum + (c.attendance_rate ?? 0), 0) / myChildren.length).toFixed(1) : '—'}%
                     </p>
                   </div>
                 </div>
@@ -374,17 +377,17 @@ export function ParentView() {
                   </div>
                   <div className="flex-1 pb-1">
                     <h4 className="text-lg font-bold">
-                      {fullName(activeChildData.learner)}
+                      {activeChildData?.full_name ?? '—'}
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      {activeChildData.sectionLabel}
+                      {activeChildData?.section_label ?? '—'}
                     </p>
                   </div>
                   <Badge
-                    variant={activeChildData.status === "On Track" ? "secondary" : "destructive"}
+                    variant={activeChildData?.status === "On Track" ? "secondary" : "destructive"}
                     className="mb-1"
                   >
-                    {activeChildData.status}
+                    {activeChildData?.status ?? '—'}
                   </Badge>
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-4 border-t pt-4">
@@ -393,7 +396,7 @@ export function ParentView() {
                       GPA
                     </p>
                     <p className="text-lg font-semibold">
-                      {activeChildData.learner.gpa}
+                      {activeChildData?.gpa ?? '—'}
                     </p>
                   </div>
                   <div>
@@ -401,7 +404,7 @@ export function ParentView() {
                       Attendance
                     </p>
                     <p className="text-lg font-semibold">
-                      {activeChildData.learner.attendanceRate.toFixed(1)}%
+                      {(activeChildData?.attendance_rate ?? 0).toFixed(1)}%
                     </p>
                   </div>
                   <div>
@@ -409,7 +412,7 @@ export function ParentView() {
                       LRN
                     </p>
                     <p className="font-mono text-xs font-semibold">
-                      {activeChildData.learner.lrn}
+                      {activeChildData?.lrn ?? '—'}
                     </p>
                   </div>
                 </div>
@@ -417,7 +420,7 @@ export function ParentView() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleSimulateScan(fullName(activeChildData.learner))}
+                    onClick={() => handleSimulateScan(activeChildData?.full_name ?? '—')}
                   >
                     <Scan className="mr-2 h-4 w-4" />
                     Simulate Scan
@@ -474,15 +477,9 @@ export function ParentView() {
           </div>
           
           <div className="grid gap-4 sm:grid-cols-2">
-            {myChildren.map((child, idx) => {
-              const childGradesData = gradeRecords.filter(g => g.lrn === child.learner.lrn);
-              const avgGrade = childGradesData.length > 0 
-                ? (childGradesData.reduce((sum, g) => sum + g.grades.q3, 0) / childGradesData.length).toFixed(1)
-                : "N/A";
-              
-              return (
+            {myChildren.map((child, idx) => (
                 <Card 
-                  key={child.learner.lrn} 
+                  key={child.lrn} 
                   className={`cursor-pointer transition-all hover:shadow-lg ${
                     activeChild === idx ? 'ring-2 ring-primary' : ''
                   }`}
@@ -492,17 +489,17 @@ export function ParentView() {
                     <div className="flex items-start gap-4">
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-md">
                         <span className="text-2xl font-bold">
-                          {child.learner.firstName.charAt(0)}
+                          {child.first_name.charAt(0)}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <h4 className="font-semibold text-base truncate">
-                              {fullName(child.learner)}
+                              {child.full_name}
                             </h4>
                             <p className="text-sm text-muted-foreground truncate">
-                              {child.sectionLabel}
+                              {child.section_label}
                             </p>
                           </div>
                           <Badge
@@ -516,15 +513,15 @@ export function ParentView() {
                         <div className="mt-3 grid grid-cols-3 gap-3 text-center">
                           <div className="rounded-lg bg-muted/50 p-2">
                             <p className="text-xs text-muted-foreground">GPA</p>
-                            <p className="text-sm font-bold">{child.learner.gpa}</p>
+                            <p className="text-sm font-bold">{child.gpa}</p>
                           </div>
                           <div className="rounded-lg bg-muted/50 p-2">
                             <p className="text-xs text-muted-foreground">Avg</p>
-                            <p className="text-sm font-bold">{avgGrade}</p>
+                            <p className="text-sm font-bold">{child.gpa?.toFixed(1) ?? 'N/A'}</p>
                           </div>
                           <div className="rounded-lg bg-muted/50 p-2">
                             <p className="text-xs text-muted-foreground">Attend</p>
-                            <p className="text-sm font-bold">{child.learner.attendanceRate.toFixed(0)}%</p>
+                            <p className="text-sm font-bold">{(child.attendance_rate ?? 0).toFixed(0)}%</p>
                           </div>
                         </div>
 
@@ -560,8 +557,7 @@ export function ParentView() {
                     </div>
                   </CardContent>
                 </Card>
-              );
-            })}
+            ))}
           </div>
         </section>
 
@@ -585,15 +581,15 @@ export function ParentView() {
               </TableHeader>
               <TableBody>
                 {childGrades.map((g) => (
-                  <TableRow key={g.subject}>
-                    <TableCell className="font-medium">{g.subject}</TableCell>
-                    <TableCell className="text-center">{g.grades.q1}</TableCell>
-                    <TableCell className="text-center">{g.grades.q2}</TableCell>
+                  <TableRow key={g.subject_name}>
+                    <TableCell className="font-medium">{g.subject_name}</TableCell>
+                    <TableCell className="text-center">{g.q1 ?? "—"}</TableCell>
+                    <TableCell className="text-center">{g.q2 ?? "—"}</TableCell>
                     <TableCell className="text-center font-semibold">
-                      {g.grades.q3}
+                      {g.q3 ?? "—"}
                     </TableCell>
                     <TableCell className="text-center text-muted-foreground">
-                      {g.grades.q4 ?? "—"}
+                      {g.q4 ?? "—"}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -934,9 +930,9 @@ export function ParentView() {
                   <SelectValue placeholder="Choose a teacher..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {teacherContacts.filter(t => t.children?.includes(activeChildData.learner.firstName)).map((teacher) => (
-                    <SelectItem key={teacher.teacher} value={teacher.teacher}>
-                      {teacher.teacher} - {teacher.subject}
+                  {teacherContactsList.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.teacher_name}>
+                      {teacher.teacher_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -972,7 +968,7 @@ export function ParentView() {
           <DialogHeader>
             <DialogTitle>Report Card - Q3</DialogTitle>
             <DialogDescription>
-              {activeChildName} · {activeChildData.sectionLabel} · SY {SCHOOL_YEAR}
+              {activeChildName} · {activeChildData?.section_label ?? '—'} · SY {SCHOOL_YEAR}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -988,11 +984,11 @@ export function ParentView() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">LRN:</span>
-                  <span className="font-mono font-semibold">{activeChildData.learner.lrn}</span>
+                  <span className="font-mono font-semibold">{activeChildData?.lrn ?? '—'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Section:</span>
-                  <span className="font-semibold">{activeChildData.sectionLabel}</span>
+                  <span className="font-semibold">{activeChildData?.section_label ?? '—'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">General Average:</span>
@@ -1008,9 +1004,9 @@ export function ParentView() {
                 </TableHeader>
                 <TableBody>
                   {childGrades.map((g) => (
-                    <TableRow key={g.subject}>
-                      <TableCell>{g.subject}</TableCell>
-                      <TableCell className="text-center font-semibold">{g.grades.q3}</TableCell>
+                    <TableRow key={g.subject_name}>
+                      <TableCell>{g.subject_name}</TableCell>
+                      <TableCell className="text-center font-semibold">{g.q3 ?? "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1040,13 +1036,13 @@ export function ParentView() {
           <div className="py-4">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold">Current Rate: {activeChildData.learner.attendanceRate.toFixed(1)}%</p>
+                <p className="text-sm font-semibold">Current Rate: {(activeChildData?.attendance_rate ?? 0).toFixed(1)}%</p>
                 <p className="text-xs text-muted-foreground">
-                  {activeChildData.learner.attendanceRate >= SF2_TARGET ? "Meeting SF2 target" : "Below SF2 target"}
+                  {(activeChildData?.attendance_rate ?? 0) >= SF2_TARGET ? "Meeting SF2 target" : "Below SF2 target"}
                 </p>
               </div>
-              <Badge variant={activeChildData.learner.attendanceRate >= SF2_TARGET ? "default" : "destructive"}>
-                {activeChildData.learner.attendanceRate >= SF2_TARGET ? "On Track" : "At Risk"}
+              <Badge variant={(activeChildData?.attendance_rate ?? 0) >= SF2_TARGET ? "default" : "destructive"}>
+                {(activeChildData?.attendance_rate ?? 0) >= SF2_TARGET ? "On Track" : "At Risk"}
               </Badge>
             </div>
             <div className="grid grid-cols-7 gap-2">

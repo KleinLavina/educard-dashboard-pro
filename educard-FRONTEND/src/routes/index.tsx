@@ -15,9 +15,8 @@ import {
   CheckCircle2,
   Smartphone,
   Printer,
-  FileEdit,
+  LogIn,
 } from "lucide-react";
-import { useRole, type Role } from "@/lib/role-context";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
@@ -73,17 +72,8 @@ const pillars = [
   { icon: School, text: "Multi-school / multi-tenant" },
 ];
 
-const roles: {
-  key: Role;
-  title: string;
-  subtitle: string;
-  desc: string;
-  icon: React.ElementType;
-  gradient: string;
-  items: string[];
-}[] = [
+const portals = [
   {
-    key: "admin",
     title: "Admin",
     subtitle: "Principal / Registrar",
     desc: "Complete school management: campus analytics, SF2 compliance, enrollment, student records, LRN management, and ID card operations.",
@@ -92,7 +82,6 @@ const roles: {
     items: ["Campus-wide analytics", "Enrollment & SF1 records", "ID card management", "SF2 compliance tracking"],
   },
   {
-    key: "teacher",
     title: "Teacher",
     subtitle: "Class management",
     desc: "Grade entry with formula engine, per-section attendance, class analytics, at-risk student flags, and bulk CSV import.",
@@ -101,7 +90,6 @@ const roles: {
     items: ["Grade entry per subject", "Class attendance log", "At-risk student flags", "Bulk grade import"],
   },
   {
-    key: "parent",
     title: "Parent",
     subtitle: "Family portal",
     desc: "Monitor your children's progress: real-time attendance alerts, grade notifications, conduct records, teacher messaging, and notification settings.",
@@ -110,7 +98,6 @@ const roles: {
     items: ["Children overview", "Real-time attendance alerts", "Grade notifications", "Teacher chat"],
   },
   {
-    key: "student",
     title: "Student",
     subtitle: "Personal portal",
     desc: "View real-time grades, attendance history, conduct log, Messenger notifications, and your personal learner ID card.",
@@ -128,12 +115,10 @@ const stats = [
 ];
 
 function LandingPage() {
-  const { setRole } = useRole();
   const navigate = useNavigate();
 
-  function enterAs(role: Role) {
-    setRole(role);
-    navigate({ to: "/dashboard" });
+  function goToLogin() {
+    navigate({ to: "/login" });
   }
 
   return (
@@ -157,34 +142,14 @@ function LandingPage() {
             <a href="#features" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">Features</a>
             <a href="#portals" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">Portals</a>
           </nav>
-          <div className="flex items-center gap-2">
-            <span className="hidden text-xs text-muted-foreground sm:block font-ui uppercase tracking-wider">Try demo:</span>
-            <button
-              onClick={() => enterAs("admin")}
-              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => enterAs("teacher")}
-              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
-            >
-              Teacher
-            </button>
-            <button
-              onClick={() => enterAs("parent")}
-              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
-            >
-              Parent
-            </button>
-            <button
-              onClick={() => enterAs("student")}
-              className="rounded-md px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
-              style={{ background: "var(--gradient-primary)" }}
-            >
-              Student
-            </button>
-          </div>
+          <button
+            onClick={goToLogin}
+            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            style={{ background: "var(--gradient-primary)" }}
+          >
+            <LogIn className="h-4 w-4" />
+            Sign In
+          </button>
         </div>
       </header>
 
@@ -207,31 +172,13 @@ function LandingPage() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <button
-              onClick={() => enterAs("admin")}
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-primary shadow-lg transition-opacity hover:opacity-90"
+              onClick={goToLogin}
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-primary shadow-lg transition-opacity hover:opacity-90"
             >
-              <School className="h-4 w-4" /> Enter as Admin
-            </button>
-            <button
-              onClick={() => enterAs("teacher")}
-              className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-primary-foreground backdrop-blur transition-colors hover:bg-white/30"
-            >
-              <BookOpen className="h-4 w-4" /> Enter as Teacher
-            </button>
-            <button
-              onClick={() => enterAs("parent")}
-              className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-primary-foreground backdrop-blur transition-colors hover:bg-white/30"
-            >
-              <Users className="h-4 w-4" /> Enter as Parent
-            </button>
-            <button
-              onClick={() => enterAs("student")}
-              className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-primary-foreground backdrop-blur transition-colors hover:bg-white/30"
-            >
-              <GraduationCap className="h-4 w-4" /> Enter as Student
+              <LogIn className="h-4 w-4" /> Sign In to Your Portal
             </button>
           </div>
-          <p className="mt-4 text-xs text-primary-foreground/60">Prototype demo — no login required</p>
+          <p className="mt-4 text-xs text-primary-foreground/60">Use your school-issued credentials to access your account.</p>
         </div>
       </section>
 
@@ -293,9 +240,9 @@ function LandingPage() {
             <p className="mt-2 text-muted-foreground">Each role has a dedicated dashboard view tailored to their needs.</p>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
-            {roles.map((r) => (
+            {portals.map((r) => (
               <div
-                key={r.key}
+                key={r.title}
                 className="group flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-shadow hover:shadow-[var(--shadow-elegant)]"
               >
                 <div className="px-5 py-6 text-primary-foreground" style={{ background: r.gradient }}>
@@ -316,10 +263,10 @@ function LandingPage() {
                     ))}
                   </ul>
                   <button
-                    onClick={() => enterAs(r.key)}
+                    onClick={goToLogin}
                     className="mt-5 flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors group-hover:bg-muted"
                   >
-                    Enter Portal <ChevronRight className="h-4 w-4" />
+                    Sign In <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -341,7 +288,7 @@ function LandingPage() {
               <span className="font-ui text-xs uppercase tracking-widest text-muted-foreground">EduCard Pro</span>
             </div>
             <p className="font-ui text-[11px] uppercase tracking-wider text-muted-foreground">
-              Aligned with DepEd SF1, SF2 &amp; LRN standards · Prototype — All data is for demonstration only
+              Aligned with DepEd SF1, SF2 &amp; LRN standards
             </p>
           </div>
         </div>

@@ -337,6 +337,17 @@ export interface GraduationNotification {
   error_message: string | null
 }
 
+export interface TeacherContact {
+  id: number
+  teacher: number
+  teacher_name: string
+  teacher_email: string
+  phone: string | null
+  email: string | null
+  show_phone: boolean
+  show_email: boolean
+}
+
 export interface PaginatedResponse<T> {
   count: number
   next: string | null
@@ -531,7 +542,7 @@ export const api = {
 
   // ── Teacher Contacts ──────────────────────────────────────────────────────
   teacherContacts: {
-    list: () => get<unknown[]>('/teacher-contacts/'),
+    list: () => get<TeacherContact[]>('/teacher-contacts/'),
   },
 
   // ── Graduation (Fix 5: notifications now return array, not single record) ─

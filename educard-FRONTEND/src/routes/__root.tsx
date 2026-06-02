@@ -7,6 +7,7 @@ import {
   useRouterState,
   HeadContent,
   Scripts,
+  redirect,
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
@@ -14,6 +15,20 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { RoleProvider } from "@/lib/role-context";
 import { ThemeProvider } from "@/lib/theme-context";
+
+const PUBLIC_PATHS = ["/", "/login"];
+
+function hasValidToken(): boolean {
+  if (typeof window === 'undefined') return true; // SSR: let pass; client will re-check
+  try {
+    const access = localStorage.getItem("educard_access");
+    if (!access) return false;
+    const payload = JSON.parse(atob(access.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' && payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+}
 
 function NotFoundComponent() {
   return (
@@ -62,6 +77,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: ({ location }) => {
+    if (PUBLIC_PATHS.includes(location.pathname)) return;
+    if (!hasValidToken()) {
+      throw redirect({ to: "/login" });
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -101,9 +122,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
-  const isLanding = currentPath === "/";
+  const isPublic = PUBLIC_PATHS.includes(currentPath);
 
-  if (isLanding) {
+  if (isPublic) {
     return (
       <ThemeProvider>
         <RoleProvider>

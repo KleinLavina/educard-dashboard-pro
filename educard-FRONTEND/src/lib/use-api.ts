@@ -111,6 +111,14 @@ export function useLearnerConduct(learnerId: number | null) {
   })
 }
 
+export function useTeacherContacts() {
+  return useQuery({
+    queryKey: ['teacher-contacts'],
+    queryFn: () => api.teacherContacts.list(),
+    staleTime: 60_000,
+  })
+}
+
 export function useCreateLearner() {
   const qc = useQueryClient()
   return useMutation({
