@@ -11,17 +11,15 @@ import {
   Settings,
   School,
   BookOpen,
-  Home,
   ChevronDown,
-  ChevronRight,
   FileEdit,
   UserPlus,
-  MessageCircle,
   FileBarChart,
   Phone,
   LogOut,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 import {
   Sidebar,
   SidebarContent,
@@ -46,9 +44,9 @@ const roleGradients: Record<Role, string> = {
 };
 
 const roleLabels: Record<Role, { label: string; icon: React.ElementType; staticSuffix: string }> = {
-  admin:   { label: "Admin",   icon: School,       staticSuffix: "St. Mary's Academy" },
-  teacher: { label: "Teacher", icon: BookOpen,     staticSuffix: ""                   },
-  parent:  { label: "Parent",  icon: Users,        staticSuffix: ""                   },
+  admin:   { label: "Admin",   icon: School,        staticSuffix: "St. Mary's Academy" },
+  teacher: { label: "Teacher", icon: BookOpen,      staticSuffix: ""                   },
+  parent:  { label: "Parent",  icon: Users,         staticSuffix: ""                   },
   student: { label: "Student", icon: GraduationCap, staticSuffix: ""                  },
 };
 
@@ -81,10 +79,15 @@ export function AppSidebar() {
   }, []);
 
   function handleSignOut() {
+    toast.success("Signed out successfully", {
+      description: "You have been logged out. See you next time!",
+    });
     setUserId(null);
-    api.auth.logout();
+    // Small delay so the toast is visible before redirect
+    setTimeout(() => {
+      api.auth.logout();
+    }, 800);
   }
-  const currentPath = useRouterState({ select: (r) => r.location.pathname });
 
   const [principalOpen, setPrincipalOpen] = useState(true);
   const [registrarOpen, setRegistrarOpen] = useState(true);
@@ -111,33 +114,30 @@ export function AppSidebar() {
           )}
         </div>
 
-        {/* Role badge — click to go to landing and switch role */}
-        <Link to="/" title="Switch role">
+        {/* Role identity badge — non-clickable, shows current user + role */}
+        <div className="mx-2 mb-3">
           {collapsed ? (
             <div
-              className="mx-2 mb-3 flex items-center justify-center rounded-xl p-2.5 text-primary-foreground shadow-sm hover:opacity-90 transition-opacity"
+              className="flex items-center justify-center rounded-xl p-2.5 text-primary-foreground shadow-sm"
               style={{ background: gradient }}
             >
               <id.icon className="h-4 w-4" />
             </div>
           ) : (
             <div
-              className="group mx-2 mb-3 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-primary-foreground shadow-sm hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-primary-foreground shadow-sm"
               style={{ background: gradient }}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/20">
-                  <id.icon className="h-3.5 w-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-ui text-[10px] font-semibold uppercase tracking-widest">{id.label}</p>
-                  <p className="truncate text-[10px] opacity-75">{sublabel}</p>
-                </div>
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/20">
+                <id.icon className="h-3.5 w-3.5" />
               </div>
-              <ChevronRight className="h-3 w-3 shrink-0 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+              <div className="min-w-0">
+                <p className="font-ui text-[10px] font-semibold uppercase tracking-widest">{id.label}</p>
+                <p className="truncate text-[10px] opacity-75">{sublabel}</p>
+              </div>
             </div>
           )}
-        </Link>
+        </div>
       </SidebarHeader>
 
       {/* ── Navigation ── */}
@@ -272,10 +272,10 @@ export function AppSidebar() {
               <SidebarGroupLabel className="font-ui uppercase tracking-widest">Main</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <NavItem title="Dashboard"    url="/dashboard"  icon={LayoutDashboard} />
-                  <NavItem title="My Grades"    url="/grades"     icon={GraduationCap} />
-                  <NavItem title="Attendance"   url="/attendance" icon={CalendarCheck} />
-                  <NavItem title="Notifications" url="/alerts"   icon={Bell} />
+                  <NavItem title="Dashboard"     url="/dashboard" icon={LayoutDashboard} />
+                  <NavItem title="My Grades"     url="/grades"    icon={GraduationCap} />
+                  <NavItem title="Attendance"    url="/attendance" icon={CalendarCheck} />
+                  <NavItem title="Notifications" url="/alerts"    icon={Bell} />
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -293,43 +293,16 @@ export function AppSidebar() {
 
       </SidebarContent>
 
-      {/* ── Footer ── */}
+      {/* ── Footer — Sign Out only ── */}
       <SidebarFooter className="border-t border-sidebar-border/40">
-        {!collapsed ? (
-          <>
-            <Link
-              to="/"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 font-ui text-[11px] uppercase tracking-widest text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <Home className="h-3.5 w-3.5 shrink-0" />
-              Switch Role
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 font-ui text-[11px] uppercase tracking-widest text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground w-full"
-            >
-              <LogOut className="h-3.5 w-3.5 shrink-0" />
-              Sign Out
-            </button>
-          </>
-        ) : (
-          <>
-            <Link
-              to="/"
-              title="Switch Role"
-              className="flex items-center justify-center rounded-lg py-2 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <Home className="h-4 w-4" />
-            </Link>
-            <button
-              onClick={handleSignOut}
-              title="Sign Out"
-              className="flex items-center justify-center rounded-lg py-2 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground w-full"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </>
-        )}
+        <button
+          onClick={handleSignOut}
+          title="Sign Out"
+          className={`flex items-center gap-2 rounded-lg px-3 py-2 font-ui text-[11px] uppercase tracking-widest text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground w-full ${collapsed ? "justify-center" : ""}`}
+        >
+          <LogOut className="h-3.5 w-3.5 shrink-0" />
+          {!collapsed && "Sign Out"}
+        </button>
       </SidebarFooter>
     </Sidebar>
   );
