@@ -128,7 +128,7 @@ function PrincipalIDCards() {
   const markPrinted = useMarkPrinted();
 
   const apiLearners = learnersQuery.data?.results ?? [];
-  const queueItems = idQueueQuery.data ?? [];
+  const queueItems = idQueueQuery.data?.results ?? [];
 
   const pendingRequests = queueItems.filter(i => i.status === "pending");
   const printedCount = queueItems.filter(i => i.status === "printed").length + printed.size;

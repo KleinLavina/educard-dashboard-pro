@@ -380,12 +380,12 @@ export const api = {
 
   // ── School Structure ──────────────────────────────────────────────────────
   departments: {
-    list: () => get<Department[]>('/departments/'),
+    list: () => get<PaginatedResponse<Department>>('/departments/'),
   },
 
   gradeLevels: {
     list: (departmentId?: number) =>
-      get<GradeLevel[]>(departmentId ? `/grade-levels/?department=${departmentId}` : '/grade-levels/'),
+      get<PaginatedResponse<GradeLevel>>(departmentId ? `/grade-levels/?department=${departmentId}` : '/grade-levels/'),
   },
 
   sections: {
@@ -393,7 +393,7 @@ export const api = {
       const q = new URLSearchParams()
       if (params?.grade_level) q.set('grade_level', String(params.grade_level))
       if (params?.department) q.set('grade_level__department', String(params.department))
-      return get<Section[]>(`/sections/${q.toString() ? '?' + q : ''}`)
+      return get<PaginatedResponse<Section>>(`/sections/${q.toString() ? '?' + q : ''}`)
     },
     belowTarget: () => get<Section[]>('/sections/below_target/'),
   },
@@ -421,9 +421,9 @@ export const api = {
   // ── Learner Parents (Fix 1: multi-parent through-table) ───────────────────
   learnerParents: {
     list: (learnerId?: number) =>
-      get<LearnerParent[]>(`/learner-parents/${learnerId ? '?learner=' + learnerId : ''}`),
+      get<PaginatedResponse<LearnerParent>>(`/learner-parents/${learnerId ? '?learner=' + learnerId : ''}`),
     listByParent: (parentId: number) =>
-      get<LearnerParent[]>(`/learner-parents/?parent=${parentId}`),
+      get<PaginatedResponse<LearnerParent>>(`/learner-parents/?parent=${parentId}`),
     create: (data: { learner: number; parent: number; relationship: string; is_primary_contact?: boolean }) =>
       post<LearnerParent>('/learner-parents/', data),
     remove: (id: number) => del<void>(`/learner-parents/${id}/`),
@@ -437,7 +437,7 @@ export const api = {
       if (params?.subject) q.set('subject', String(params.subject))
       if (params?.quarter) q.set('quarter', String(params.quarter))
       if (params?.section) q.set('learner__section', String(params.section))
-      return get<Grade[]>(`/grades/${q.toString() ? '?' + q : ''}`)
+      return get<PaginatedResponse<Grade>>(`/grades/${q.toString() ? '?' + q : ''}`)
     },
     upsert: (id: number | null, data: Partial<Grade>) =>
       id ? patch<Grade>(`/grades/${id}/`, data) : post<Grade>('/grades/', data),
@@ -451,7 +451,7 @@ export const api = {
       const q = new URLSearchParams()
       if (params?.section) q.set('section', String(params.section))
       if (params?.school_year) q.set('school_year', String(params.school_year))
-      return get<Subject[]>(`/subjects/${q.toString() ? '?' + q : ''}`)
+      return get<PaginatedResponse<Subject>>(`/subjects/${q.toString() ? '?' + q : ''}`)
     },
   },
 
@@ -462,7 +462,7 @@ export const api = {
       if (params?.learner) q.set('learner', String(params.learner))
       if (params?.date) q.set('date', params.date)
       if (params?.status) q.set('status', params.status)
-      return get<AttendanceRecord[]>(`/attendance/${q.toString() ? '?' + q : ''}`)
+      return get<PaginatedResponse<AttendanceRecord>>(`/attendance/${q.toString() ? '?' + q : ''}`)
     },
     scan: (barcodeValue: string, session: string) =>
       post<{ success: boolean; learner: Learner; record: AttendanceRecord }>(
@@ -489,7 +489,7 @@ export const api = {
   // ── Notifications ─────────────────────────────────────────────────────────
   notifications: {
     list: (learnerId?: number) =>
-      get<NotificationRecord[]>(`/notifications/${learnerId ? '?learner=' + learnerId : ''}`),
+      get<PaginatedResponse<NotificationRecord>>(`/notifications/${learnerId ? '?learner=' + learnerId : ''}`),
     preferences: (learnerId: number) =>
       get<unknown>(`/notif-prefs/?learner=${learnerId}`),
     updatePreferences: (id: number, data: unknown) =>
@@ -499,13 +499,13 @@ export const api = {
   // ── Conduct ───────────────────────────────────────────────────────────────
   conduct: {
     list: (learnerId?: number) =>
-      get<ConductLog[]>(`/conduct/${learnerId ? '?learner=' + learnerId : ''}`),
+      get<PaginatedResponse<ConductLog>>(`/conduct/${learnerId ? '?learner=' + learnerId : ''}`),
     create: (data: Partial<ConductLog>) => post<ConductLog>('/conduct/', data),
   },
 
   // ── Messages ──────────────────────────────────────────────────────────────
   messages: {
-    list: () => get<Message[]>('/messages/'),
+    list: () => get<PaginatedResponse<Message>>('/messages/'),
     send: (data: { receiver: number; subject: string; body: string; learner?: number }) =>
       post<Message>('/messages/', data),
     markRead: (id: number) => patch<Message>(`/messages/${id}/mark_read/`, {}),
@@ -542,7 +542,7 @@ export const api = {
 
   // ── Teacher Contacts ──────────────────────────────────────────────────────
   teacherContacts: {
-    list: () => get<TeacherContact[]>('/teacher-contacts/'),
+    list: () => get<PaginatedResponse<TeacherContact>>('/teacher-contacts/'),
   },
 
   // ── Graduation (Fix 5: notifications now return array, not single record) ─
@@ -557,7 +557,7 @@ export const api = {
   // ── Absence Alerts ────────────────────────────────────────────────────────
   absenceAlerts: {
     list: (threshold?: number) =>
-      get<unknown[]>(`/absence-alerts/${threshold ? '?threshold=' + threshold : ''}`),
+      get<PaginatedResponse<unknown>>(`/absence-alerts/${threshold ? '?threshold=' + threshold : ''}`),
   },
 }
 

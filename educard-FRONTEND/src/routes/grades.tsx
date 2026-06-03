@@ -156,7 +156,7 @@ function PrincipalGradeOverview() {
   const sectionsQuery = useSections();
   const learnersQuery = useLearners();
 
-  const apiSections = sectionsQuery.data ?? [];
+  const apiSections = sectionsQuery.data?.results ?? [];
   const apiLearners = learnersQuery.data?.results ?? [];
   const hasApiData = apiSections.length > 0 || apiLearners.length > 0;
 
@@ -416,17 +416,17 @@ function PrincipalGradeOverview() {
 /* ─── Teacher: grade book — API-wired ────────────────────── */
 function TeacherGradeBook() {
   const sectionsQuery = useSections();
-  const mySection = sectionsQuery.data?.[0] ?? null;
+  const mySection = sectionsQuery.data?.results[0] ?? null;
   const sectionId = mySection?.id ?? null;
 
   const learnersQuery = useLearners(sectionId != null ? { section: sectionId } : undefined);
   const learners = learnersQuery.data?.results ?? [];
 
   const subjectsQuery = useSubjects(sectionId ?? undefined);
-  const subjects = subjectsQuery.data ?? [];
+  const subjects = subjectsQuery.data?.results ?? [];
 
   const gradesQuery = useGradesBySection(sectionId);
-  const allGradesData = gradesQuery.data ?? [];
+  const allGradesData = gradesQuery.data?.results ?? [];
 
   const isLoading = sectionsQuery.isLoading || learnersQuery.isLoading || subjectsQuery.isLoading;
 

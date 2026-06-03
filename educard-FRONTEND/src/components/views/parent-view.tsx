@@ -170,7 +170,8 @@ export function ParentView() {
   const childGrades = Object.entries(childGradesBySubject).map(([subject_name, grades]) => ({ subject_name, ...grades }));
 
   // API: fetch teacher contacts (backend scopes to parent's children's teachers)
-  const { data: teacherContactsList = [] } = useTeacherContacts();
+  const teacherContactsQuery = useTeacherContacts();
+  const teacherContactsList = teacherContactsQuery.data?.results ?? [];
 
   // Filter notifications/conduct by active child's first name
   const childNotifications = recentNotifications.filter(

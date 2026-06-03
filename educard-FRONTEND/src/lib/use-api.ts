@@ -345,7 +345,7 @@ export function useMyTeacherSection() {
         api.sections.list(),
         api.learners.list({ page: 1 }),
       ])
-      return { sections, learners: learners.results }
+      return { sections: sections.results, learners: learners.results }
     },
     staleTime: 60_000,
   })

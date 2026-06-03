@@ -119,7 +119,7 @@ function PrincipalSF2() {
   const sectionsQuery = useSections();
   const learnersQuery = useLearners();
 
-  const apiSections = sectionsQuery.data ?? [];
+  const apiSections = sectionsQuery.data?.results ?? [];
   const apiLearners = learnersQuery.data?.results ?? [];
   const hasApiData = apiSections.length > 0;
 

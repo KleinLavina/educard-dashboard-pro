@@ -79,7 +79,8 @@ export function ParentMyChildrenView() {
 
   const { data: childAttendance = [] } = useLearnerAttendance(activeChild?.id ?? null);
   const { data: childConduct = [] } = useLearnerConduct(activeChild?.id ?? null);
-  const { data: teacherContactsList = [] } = useTeacherContacts();
+  const teacherContactsQuery = useTeacherContacts();
+  const teacherContactsList = teacherContactsQuery.data?.results ?? [];
 
   // Grade statistics
   const q3Grades = childGrades.filter(g => g.q3 !== null).map(g => g.q3!);

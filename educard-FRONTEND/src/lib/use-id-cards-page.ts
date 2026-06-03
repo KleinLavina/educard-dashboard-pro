@@ -17,7 +17,7 @@ export function useIDCardsPage() {
   const isLoading = queueQuery.isLoading
 
   // ── Print queue ───────────────────────────────────────────────────────────
-  const apiQueue = queueQuery.data ?? []
+  const apiQueue = queueQuery.data?.results ?? []
 
   const normalisedQueue = apiQueue.map(item => ({
     id:           item.id,

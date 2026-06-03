@@ -68,7 +68,7 @@ export function useStudentsPage(search = '', deptFilter: 'all' | 'JHS' | 'SHS' =
   const atRiskCount = atRiskQuery.data?.length
     ?? mockAllLearners.filter(l => l.status === 'At Risk').length
 
-  const sectionCount = sectionsQuery.data?.length ?? mockAllSections.length
+  const sectionCount = sectionsQuery.data?.results?.length ?? mockAllSections.length
 
   return {
     isLoading,

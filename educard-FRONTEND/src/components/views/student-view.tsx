@@ -29,7 +29,8 @@ export function StudentView() {
   const { data: gradesRaw = [] } = useLearnerGrades(learner?.id ?? null);
   const { data: attendanceRaw = [] } = useLearnerAttendance(learner?.id ?? null);
   const { data: conductRaw = [] } = useLearnerConduct(learner?.id ?? null);
-  const { data: notifsRaw = [] } = useNotifications(learner?.id);
+  const notifsQuery = useNotifications(learner?.id);
+  const notifsRaw = notifsQuery.data?.results ?? [];
 
   const [reportCardOpen, setReportCardOpen] = useState(false);
   const [gradeDetailOpen, setGradeDetailOpen] = useState(false);

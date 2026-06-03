@@ -31,9 +31,8 @@ export function TeacherView() {
     ? learners.filter(l => l.section === mySection.id)
     : learners;
 
-  const { data: gradesRaw = [] } = useGrades(
-    mySection ? { subject: undefined } : undefined
-  );
+  const gradesQuery = useGrades(mySection ? { subject: undefined } : undefined);
+  const gradesRaw = gradesQuery.data?.results ?? [];
   const { data: todayAttendance = [] } = useAttendanceToday(mySection?.id);
   const upsertGrade = useUpsertGrade();
 

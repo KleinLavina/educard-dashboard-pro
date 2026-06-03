@@ -14,7 +14,7 @@ import {
 export function useLearnerGradesPage(learnerId: number | null, lrn?: string) {
   const gradesQuery = useGrades(learnerId ? { learner: learnerId } : undefined)
 
-  const apiGrades = gradesQuery.data ?? []
+  const apiGrades = gradesQuery.data?.results ?? []
 
   // Normalise API grades to { subject, q1, q2, q3, q4 } shape
   const normalisedApi = (() => {

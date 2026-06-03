@@ -20,7 +20,7 @@ export function useAlertsPage() {
   const isLoading = notifQuery.isLoading
 
   // ── Notification history ──────────────────────────────────────────────────
-  const apiNotifs = notifQuery.data ?? []
+  const apiNotifs = notifQuery.data?.results ?? []
 
   const normalisedNotifs = apiNotifs.map(n => ({
     id:          String(n.id),
