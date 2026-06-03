@@ -43,6 +43,14 @@ const DEMO_ACCOUNTS = [
     password: "parent123",
     label: "Parent / Guardian",
   },
+  {
+    role: "Student",
+    color: "bg-orange-500/10 text-orange-600 border-orange-200 dark:text-orange-400 dark:border-orange-800",
+    dot: "bg-orange-500",
+    username: "jose.aguilar",
+    password: "student123",
+    label: "Grade 7 Student",
+  },
 ] as const;
 
 function CopyButton({ value }: { value: string }) {
