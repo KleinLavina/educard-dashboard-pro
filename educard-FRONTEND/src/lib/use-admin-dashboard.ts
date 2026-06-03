@@ -67,10 +67,10 @@ export function useAdminDashboard() {
 
   // ── Pending tasks ─────────────────────────────────────────────────────────
   const pendingTasks = tasksQuery.data
-    ? tasksQuery.data.map(t => ({
+    ? tasksQuery.data.results.map(t => ({
         id:       t.id,
         task:     t.title,
-        priority: t.priority.charAt(0).toUpperCase() + t.priority.slice(1),
+        priority: t.priority ? t.priority.charAt(0).toUpperCase() + t.priority.slice(1) : 'Medium',
         dueDate:  t.due_date ?? '—',
       }))
     : [
@@ -82,11 +82,11 @@ export function useAdminDashboard() {
 
   // ── ID card counts ────────────────────────────────────────────────────────
   const idPrinted = idQueueQuery.data
-    ? idQueueQuery.data.filter(i => i.status === 'printed').length
+    ? idQueueQuery.data.results.filter(i => i.status === 'printed').length
     : stats.id_cards_printed
 
   const idPending = idQueueQuery.data
-    ? idQueueQuery.data.filter(i => i.status === 'pending').length
+    ? idQueueQuery.data.results.filter(i => i.status === 'pending').length
     : 3
 
   // ── Department bars (chart) ───────────────────────────────────────────────

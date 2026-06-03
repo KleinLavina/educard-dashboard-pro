@@ -2,3 +2,4 @@
 - [Section ID type mismatch](section-id-types.md) — mock sections use string IDs, API sections use numeric IDs; must cast when joining learners to sections
 - [JWT auth guard expiry check](jwt-expiry-guard.md) — presence check alone is not enough; must decode payload and compare exp * 1000 > Date.now()
 - [Parent view API field mapping](parent-api-fields.md) — Learner API uses snake_case flat fields (first_name, full_name, gpa, attendance_rate, section_label); Grade API is per-quarter-per-subject and must be grouped by subject_name before display
+- [Paginated API endpoints](paginated-api-endpoints.md) — tasks and id-queue return PaginatedResponse; at_risk returns plain array; always use .results for paginated, direct .data for arrays

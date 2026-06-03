@@ -478,7 +478,7 @@ export const api = {
   // ── ID Cards ──────────────────────────────────────────────────────────────
   idCards: {
     queue: (status?: string) =>
-      get<IDPrintQueueItem[]>(`/id-queue/${status ? '?status=' + status : ''}`),
+      get<PaginatedResponse<IDPrintQueueItem>>(`/id-queue/${status ? '?status=' + status : ''}`),
     requestPrint: (learnerId: number, reason: string) =>
       post<IDPrintQueueItem>('/id-queue/', { learner: learnerId, reason }),
     markPrinted: (id: number) =>
@@ -531,7 +531,7 @@ export const api = {
   // ── Admin Tasks ───────────────────────────────────────────────────────────
   tasks: {
     list: (status?: string) =>
-      get<AdminTask[]>(`/tasks/${status ? '?status=' + status : ''}`),
+      get<PaginatedResponse<AdminTask>>(`/tasks/${status ? '?status=' + status : ''}`),
     complete: (id: number) => patch<AdminTask>(`/tasks/${id}/complete/`, {}),
   },
 
