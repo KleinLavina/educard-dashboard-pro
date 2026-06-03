@@ -15,6 +15,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { RoleProvider } from "@/lib/role-context";
 import { ThemeProvider } from "@/lib/theme-context";
+import { Toaster } from "@/components/ui/sonner";
 
 const PUBLIC_PATHS = ["/", "/login"];
 
@@ -130,6 +131,7 @@ function RootComponent() {
         <RoleProvider>
           <QueryClientProvider client={queryClient}>
             <Outlet />
+            <Toaster position="top-right" richColors closeButton />
           </QueryClientProvider>
         </RoleProvider>
       </ThemeProvider>
@@ -148,6 +150,7 @@ function RootComponent() {
               </div>
             </div>
           </SidebarProvider>
+          <Toaster position="top-right" richColors closeButton />
         </QueryClientProvider>
       </RoleProvider>
     </ThemeProvider>
