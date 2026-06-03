@@ -118,12 +118,12 @@ function LandingPage() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <img
-              src="/Screenshot_2026-05-10_102005-removebg-preview.png"
+              src="/EDUCARDLOGO/NAKO.png"
               alt="EduCard Pro"
               className="h-8 w-8 object-contain"
             />
             <img
-              src="/Screenshot_2026-05-10_100606-removebg-preview.png"
+              src="/EDUCARDLOGO/BIGNAKO.png"
               alt="EduCard Pro"
               className="h-8 max-w-[120px] object-contain"
             />
@@ -271,7 +271,7 @@ function LandingPage() {
           <div className="flex flex-col items-center gap-3 text-center">
             <div className="flex items-center gap-2">
               <img
-                src="/Screenshot_2026-05-10_102005-removebg-preview.png"
+                src="/EDUCARDLOGO/NAKO.png"
                 alt="EduCard Pro"
                 className="h-6 w-6 object-contain"
               />
