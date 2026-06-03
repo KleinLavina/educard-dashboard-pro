@@ -28,12 +28,6 @@ import {
 
 export const Route = createFileRoute("/contacts")({
   component: ContactsPage,
-  head: () => ({
-    meta: [
-      { title: `Contacts — ${SCHOOL_NAME} (EduCard Pro)` },
-      { name: "description", content: "Teacher and parent contact information" },
-    ],
-  }),
 });
 
 function ContactsPage() {

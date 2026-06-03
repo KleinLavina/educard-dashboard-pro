@@ -20,16 +20,6 @@ import {
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
-  head: () => ({
-    meta: [
-      { title: "EduCard Pro — School Management & ID System" },
-      {
-        name: "description",
-        content:
-          "All-in-one platform: Grades, Attendance, ID Generation, Parent Notifications for Philippine K-12 schools.",
-      },
-    ],
-  }),
 });
 
 const features = [

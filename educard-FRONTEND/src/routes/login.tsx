@@ -13,9 +13,6 @@ import { SCHOOL_NAME } from "@/lib/school-data";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
-  head: () => ({
-    meta: [{ title: `Login — ${SCHOOL_NAME} (EduCard Pro)` }],
-  }),
 });
 
 const DEMO_ACCOUNTS = [

@@ -21,7 +21,6 @@ import { BarChart, Bar, LineChart, Line, PieChart as RechartsPie, Pie, Cell, XAx
 
 export const Route = createFileRoute("/reports")({
   component: ReportsPage,
-  head: () => ({ meta: [{ title: `Reports & Analytics — ${SCHOOL_NAME} (EduCard Pro)` }] }),
 });
 
 function ReportsPage() {

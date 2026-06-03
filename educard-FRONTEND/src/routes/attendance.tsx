@@ -17,7 +17,6 @@ import { useSections, useLearners } from "@/lib/use-api";
 
 export const Route = createFileRoute("/attendance")({
   component: AttendancePage,
-  head: () => ({ meta: [{ title: `Attendance — ${SCHOOL_NAME} (EduCard Pro)` }] }),
 });
 
 function AttendancePage() {

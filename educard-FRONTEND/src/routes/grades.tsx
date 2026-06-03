@@ -21,7 +21,6 @@ import { useSections, useLearners, useUpsertGrade, useSubjects, useGradesBySecti
 
 export const Route = createFileRoute("/grades")({
   component: GradesPage,
-  head: () => ({ meta: [{ title: `Grades — ${SCHOOL_NAME} (EduCard Pro)` }] }),
 });
 
 function GradesPage() {

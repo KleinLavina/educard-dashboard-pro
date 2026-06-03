@@ -5,12 +5,9 @@ import {
   createRootRouteWithContext,
   useRouter,
   useRouterState,
-  HeadContent,
-  Scripts,
   redirect,
 } from "@tanstack/react-router";
 
-import appCss from "../styles.css?url";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { RoleProvider } from "@/lib/role-context";
@@ -20,7 +17,7 @@ import { Toaster } from "@/components/ui/sonner";
 const PUBLIC_PATHS = ["/", "/login"];
 
 function hasValidToken(): boolean {
-  if (typeof window === 'undefined') return true; // SSR: let pass; client will re-check
+  if (typeof window === 'undefined') return true;
   try {
     const access = localStorage.getItem("educard_access");
     if (!access) return false;
@@ -84,41 +81,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       throw redirect({ to: "/login" });
     }
   },
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "EduCard Pro" },
-      { name: "description", content: "Multi-tenant school management for Philippine K-12" },
-    ],
-    links: [
-      { rel: "icon", type: "image/png", href: "/Screenshot 2026-05-10 102005.png" },
-      { rel: "stylesheet", href: appCss },
-    ],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-        {/* Anti-FOUC: apply saved theme before React hydrates */}
-        <script dangerouslySetInnerHTML={{
-          __html: `(function(){try{var t=localStorage.getItem('educard_theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`
-        }} />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();

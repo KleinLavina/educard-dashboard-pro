@@ -19,7 +19,6 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/id-cards")({
   component: IDCardsPage,
-  head: () => ({ meta: [{ title: `ID Cards — ${SCHOOL_NAME} (EduCard Pro)` }] }),
 });
 
 function IDCardsPage() {

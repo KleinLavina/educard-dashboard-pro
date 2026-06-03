@@ -23,7 +23,6 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/alerts")({
   component: AlertsPage,
-  head: () => ({ meta: [{ title: `Alerts — ${SCHOOL_NAME} (EduCard Pro)` }] }),
 });
 
 type AlertTone = "warn" | "info" | "ok" | "critical";

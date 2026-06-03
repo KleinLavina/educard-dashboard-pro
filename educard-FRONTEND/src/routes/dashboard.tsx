@@ -10,12 +10,6 @@ import { SCHOOL_NAME } from "@/lib/school-data";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
-  head: () => ({
-    meta: [
-      { title: `Dashboard — ${SCHOOL_NAME} (EduCard Pro)` },
-      { name: "description", content: "Role-based school management dashboard for EduCard Pro." },
-    ],
-  }),
 });
 
 function DashboardPage() {

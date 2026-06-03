@@ -19,7 +19,6 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
-  head: () => ({ meta: [{ title: `Settings — ${SCHOOL_NAME} (EduCard Pro)` }] }),
 });
 
 type Tab = "school" | "grading" | "calendar" | "users" | "notifications" | "security" | "appearance";

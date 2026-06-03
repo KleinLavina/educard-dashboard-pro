@@ -42,7 +42,6 @@ import { useCreateLearner, useLearnerGrades, useLearnerAttendance, useLearnerCon
 
 export const Route = createFileRoute("/students")({
   component: StudentsPage,
-  head: () => ({ meta: [{ title: `Students — ${SCHOOL_NAME} (EduCard Pro)` }] }),
 });
 
 type DeptFilter = "all" | "JHS" | "SHS";
