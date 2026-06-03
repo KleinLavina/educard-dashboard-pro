@@ -17,12 +17,14 @@ import { Toaster } from "@/components/ui/sonner";
 const PUBLIC_PATHS = ["/", "/login"];
 
 function hasValidToken(): boolean {
-  if (typeof window === 'undefined') return true;
+  if (typeof window === "undefined") return true;
   try {
     const access = localStorage.getItem("educard_access");
     if (!access) return false;
-    const payload = JSON.parse(atob(access.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return typeof payload.exp === 'number' && payload.exp * 1000 > Date.now();
+    const payload = JSON.parse(
+      atob(access.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+    );
+    return typeof payload.exp === "number" && payload.exp * 1000 > Date.now();
   } catch {
     return false;
   }
@@ -33,7 +35,9 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">
+          Page not found
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           The page you're looking for doesn't exist or has been moved.
         </p>
@@ -56,16 +60,26 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">This page didn't load</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Something went wrong. Try refreshing or head back home.</p>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+          This page didn't load
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Something went wrong. Try refreshing or head back home.
+        </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => { router.invalidate(); reset(); }}
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Try again
           </button>
-          <a href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent">
+          <a
+            href="/"
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
             Go home
           </a>
         </div>
@@ -91,32 +105,26 @@ function RootComponent() {
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
   const isPublic = PUBLIC_PATHS.includes(currentPath);
 
-  if (isPublic) {
-    return (
-      <ThemeProvider>
-        <RoleProvider>
-          <QueryClientProvider client={queryClient}>
-            <Outlet />
-            <Toaster position="top-right" richColors closeButton />
-          </QueryClientProvider>
-        </RoleProvider>
-      </ThemeProvider>
-    );
-  }
-
   return (
     <ThemeProvider>
       <RoleProvider>
         <QueryClientProvider client={queryClient}>
-          <SidebarProvider>
-            <div className="flex min-h-screen w-full">
-              <AppSidebar />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <Outlet />
+          {isPublic ? (
+            <>
+              <Outlet />
+              <Toaster position="top-right" richColors closeButton />
+            </>
+          ) : (
+            <SidebarProvider>
+              <div className="flex min-h-screen w-full">
+                <AppSidebar />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <Outlet />
+                </div>
               </div>
-            </div>
-          </SidebarProvider>
-          <Toaster position="top-right" richColors closeButton />
+              <Toaster position="top-right" richColors closeButton />
+            </SidebarProvider>
+          )}
         </QueryClientProvider>
       </RoleProvider>
     </ThemeProvider>
