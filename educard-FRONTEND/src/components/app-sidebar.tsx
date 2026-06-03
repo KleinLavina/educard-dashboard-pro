@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -45,11 +45,11 @@ const roleGradients: Record<Role, string> = {
   student:  "linear-gradient(135deg, oklch(0.65 0.18 30), oklch(0.78 0.16 80))",
 };
 
-const roleLabels: Record<Role, { label: string; sublabel: string; icon: React.ElementType }> = {
-  admin:   { label: "Admin",   sublabel: "Principal / Registrar · St. Mary's Academy", icon: School },
-  teacher: { label: "Teacher", sublabel: "Ms. Aurora Aquino · Grade 7 Sampaguita",     icon: BookOpen },
-  parent:  { label: "Parent",  sublabel: "Mr. & Mrs. Dela Cruz · 2 Children",          icon: Users },
-  student: { label: "Student", sublabel: "Juan M. Dela Cruz · Grade 7 Sampaguita",     icon: GraduationCap },
+const roleLabels: Record<Role, { label: string; icon: React.ElementType; staticSuffix: string }> = {
+  admin:   { label: "Admin",   icon: School,       staticSuffix: "St. Mary's Academy" },
+  teacher: { label: "Teacher", icon: BookOpen,     staticSuffix: ""                   },
+  parent:  { label: "Parent",  icon: Users,        staticSuffix: ""                   },
+  student: { label: "Student", icon: GraduationCap, staticSuffix: ""                  },
 };
 
 function NavItem({ title, url, icon: Icon }: { title: string; url: string; icon: React.ElementType }) {
@@ -72,6 +72,14 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { role, setUserId } = useRole();
 
+  const [userName, setUserName] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.auth.me()
+      .then((u) => setUserName(u.full_name))
+      .catch(() => {});
+  }, []);
+
   function handleSignOut() {
     setUserId(null);
     api.auth.logout();
@@ -83,6 +91,12 @@ export function AppSidebar() {
 
   const id = roleLabels[role];
   const gradient = roleGradients[role];
+
+  const sublabel = (() => {
+    const name = userName ?? "…";
+    const suffix = id.staticSuffix;
+    return suffix ? `${name} · ${suffix}` : name;
+  })();
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -117,7 +131,7 @@ export function AppSidebar() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-ui text-[10px] font-semibold uppercase tracking-widest">{id.label}</p>
-                  <p className="truncate text-[10px] opacity-75">{id.sublabel}</p>
+                  <p className="truncate text-[10px] opacity-75">{sublabel}</p>
                 </div>
               </div>
               <ChevronRight className="h-3 w-3 shrink-0 opacity-60 group-hover:translate-x-0.5 transition-transform" />
